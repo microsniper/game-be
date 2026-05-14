@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.sniper.game.wordgame.constant.base.CodeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 
 @Getter
 @AllArgsConstructor
@@ -39,8 +40,31 @@ public enum SourceEnum implements CodeEnum {
         return code;
     }
 
-    @JsonCreator
-    public static SourceEnum fromCode(Integer code) {
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+    public static SourceEnum fromCode(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return fromNumber(((Number) value).intValue());
+        }
+
+        String text = String.valueOf(value).trim();
+        if (StringUtils.isBlank(text)) {
+            return null;
+        }
+        if (StringUtils.isNumeric(text)) {
+            return fromNumber(Integer.parseInt(text));
+        }
+        for (SourceEnum sourceEnum : values()) {
+            if (sourceEnum.name().equalsIgnoreCase(text)) {
+                return sourceEnum;
+            }
+        }
+        throw new IllegalArgumentException("不支持的来源渠道: " + value);
+    }
+
+    private static SourceEnum fromNumber(Integer code) {
         if (code == null) {
             return null;
         }
