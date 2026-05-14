@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sniper.game.wordgame.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="com.sniper.game.wordgame.entity.User">
+        <id column="id" property="id"/>
+        <result column="openid" property="openid"/>
+        <result column="unionid" property="unionid"/>
+        <result column="source" property="source" jdbcType="INTEGER"
+                typeHandler="com.sniper.game.wordgame.typehandler.SourceEnumTypeHandler"/>
+        <result column="game_type" property="gameType" jdbcType="INTEGER"
+                typeHandler="com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler"/>
+        <result column="nickname" property="nickname"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findByOpenidAndGameType" resultMap="UserResultMap">
+        select id, openid, unionid, source, game_type, nickname, avatar_url, created_at, updated_at
+        from `user`
+        where openid = #{openid}
+          and game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.sniper.game.wordgame.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into `user` (
+            openid, unionid, source, game_type, nickname, avatar_url, created_at, updated_at
+        ) values (
+            #{openid}, #{unionid},
+            #{source, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.SourceEnumTypeHandler},
+            #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler},
+            #{nickname}, #{avatarUrl}, now(), now()
+        )
+    </insert>
+</mapper>

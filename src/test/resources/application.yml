@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: wordgame
+  
+  # H2 内存数据库（测试用）
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MYSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+
+  h2:
+    console:
+      enabled: true
+  
+  # 自动初始化表结构
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  
+  # Redis 配置（测试用 mock）
+  redis:
+    host: localhost
+    port: 6379
+
+server:
+  port: 9001
+
+# MyBatis 配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.sniper.game.wordgame.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 微信小程序配置
+wx:
+  miniapp:
+    appid: test_appid
+    secret: test_secret
+    jscode2session-url: https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code
+
+# 默认头像配置（测试用）
+avatar:
+  defaults:
+    - https://sniper-blog.oss-cn-beijing.aliyuncs.com/mini-program/wx-avatar01.jpg
+    - https://sniper-blog.oss-cn-beijing.aliyuncs.com/mini-program/wx-avatar02.jpg
+    - https://sniper-blog.oss-cn-beijing.aliyuncs.com/mini-program/wx-avatar03.jpg
+    - https://sniper-blog.oss-cn-beijing.aliyuncs.com/mini-program/wx-avatar04.jpg
+
+# OSS 配置（测试用）
+oss:
+  endpoint: oss-cn-beijing.aliyuncs.com
+  bucket-name: sniper-blog
+  access-key-id: test_access_key_id
+  access-key-secret: test_access_key_secret
+  avatar-dir: mini-program/user-avatars/
+  region: cn-beijing
+  role-arn: acs:ram::123456789:role/test-role
