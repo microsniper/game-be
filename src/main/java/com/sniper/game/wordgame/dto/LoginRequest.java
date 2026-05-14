@@ -1,11 +1,12 @@
 package com.sniper.game.wordgame.dto;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 @Data
 public class LoginRequest {
@@ -13,9 +14,9 @@ public class LoginRequest {
     @NotBlank(message = "code不能为空")
     private String code;
 
-    @NotNull(message = "gameType不能为空")
-    private GameTypeEnum gameType;
+    @JsonSetter(nulls = Nulls.SKIP)
+    private GameTypeEnum gameType = GameTypeEnum.SCREW;
 
-    @NotNull(message = "source不能为空")
-    private SourceEnum source;
+    @JsonSetter(nulls = Nulls.SKIP)
+    private SourceEnum source = SourceEnum.WECHAT;
 }
