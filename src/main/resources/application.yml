@@ -1,6 +1,6 @@
 spring:
   application:
-    name: wordgame
+    name: game-be
   
   # MySQL 配置
   datasource:
