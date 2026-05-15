@@ -12,5 +12,5 @@ spring:
 
 wx:
   miniapp:
-    appid: ${WX_MINIAPP_APPID:}
-    secret: ${WX_MINIAPP_SECRET:}
+    appid: ${WECHAT_APPID:}
+    secret: ${WECHAT_SECRET:}
