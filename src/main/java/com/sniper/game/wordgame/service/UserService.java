@@ -179,8 +179,11 @@ public class UserService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
 
+        log.info("抖音登录请求: url={}, body={}", dyJscode2sessionUrl, JSON.toJSONString(body));
+
         try {
             String response = restTemplate.postForObject(dyJscode2sessionUrl, requestEntity, String.class);
+            log.info("抖音登录API响应: {}", response);
             if (StringUtils.isBlank(response)) {
                 throw BusinessException.badRequest("抖音登录失败，请稍后重试");
             }
