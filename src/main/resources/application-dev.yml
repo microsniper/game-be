@@ -14,3 +14,8 @@ wx:
   miniapp:
     appid: ${WX_MINIAPP_APPID:}
     secret: ${WX_MINIAPP_SECRET:}
+
+dy:
+  miniapp:
+    appid: ${DY_MINIAPP_APPID:}
+    secret: ${DY_MINIAPP_SECRET:}

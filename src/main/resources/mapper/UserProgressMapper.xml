@@ -10,11 +10,13 @@
         <result column="game_type" property="gameType" jdbcType="INTEGER"
                 typeHandler="com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler"/>
         <result column="level_num" property="levelNum"/>
+        <result column="source" property="source" jdbcType="INTEGER"
+                typeHandler="com.sniper.game.wordgame.typehandler.SourceEnumTypeHandler"/>
         <result column="updated_at" property="updatedAt"/>
     </resultMap>
 
     <select id="findByUserIdAndGameType" resultMap="UserProgressResultMap">
-        select id, user_id, game_type, level_num, updated_at
+        select id, user_id, game_type, level_num, source, updated_at
         from user_progress
         where user_id = #{userId}
           and game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
@@ -24,11 +26,13 @@
     <insert id="insert" parameterType="com.sniper.game.wordgame.entity.UserProgress"
             useGeneratedKeys="true" keyProperty="id">
         insert into user_progress (
-            user_id, game_type, level_num, updated_at
+            user_id, game_type, level_num, source, updated_at
         ) values (
             #{userId},
             #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler},
-            #{levelNum}, now()
+            #{levelNum},
+            #{source, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.SourceEnumTypeHandler},
+            now()
         )
     </insert>
 

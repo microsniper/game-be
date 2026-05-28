@@ -44,18 +44,37 @@ public class UserService {
     @Value("${wx.miniapp.jscode2session-url:https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code}")
     private String jscode2sessionUrl;
 
+    @Value("${dy.miniapp.appid:}")
+    private String dyMiniAppId;
+
+    @Value("${dy.miniapp.secret:}")
+    private String dyMiniAppSecret;
+
+    @Value("${dy.miniapp.jscode2session-url:https://developer.toutiao.com/api/apps/v2/jscode2session?appid=%s&secret=%s&code=%s}")
+    private String dyJscode2sessionUrl;
+
     public LoginResponse login(String code, GameTypeEnum gameType, SourceEnum source) {
-        JSONObject session = getWechatSession(code);
-        String openid = session.getString("openid");
+        String openid;
+        String unionid;
+        if (source == SourceEnum.DOUYIN) {
+            JSONObject session = getDouyinSession(code);
+            openid = session.getString("openid");
+            unionid = null;
+        } else {
+            JSONObject session = getWechatSession(code);
+            openid = session.getString("openid");
+            unionid = StringUtils.trimToNull(session.getString("unionid"));
+        }
+
         if (StringUtils.isBlank(openid)) {
-            throw BusinessException.badRequest("微信登录失败，未获取到openid");
+            throw BusinessException.badRequest("登录失败，未获取到openid");
         }
 
         User user = userMapper.findByOpenidAndGameType(openid, gameType);
         if (user == null) {
             user = new User();
             user.setOpenid(openid);
-            user.setUnionid(StringUtils.trimToNull(session.getString("unionid")));
+            user.setUnionid(unionid);
             user.setSource(source);
             user.setGameType(gameType);
             userMapper.insert(user);
@@ -67,6 +86,7 @@ public class UserService {
             progress.setUserId(user.getId());
             progress.setGameType(gameType);
             progress.setLevelNum(1);
+            progress.setSource(source);
             userProgressMapper.insert(progress);
         }
 
@@ -81,12 +101,15 @@ public class UserService {
             throw BusinessException.unauthorized("请先登录");
         }
 
+        User user = userMapper.findById(userId);
+
         UserProgress progress = userProgressMapper.findByUserIdAndGameType(userId, gameType);
         if (progress == null) {
             progress = new UserProgress();
             progress.setUserId(userId);
             progress.setGameType(gameType);
             progress.setLevelNum(levelNum);
+            progress.setSource(user != null ? user.getSource() : SourceEnum.WECHAT);
             userProgressMapper.insert(progress);
             return;
         }
@@ -134,6 +157,37 @@ public class UserService {
         } catch (RestClientException e) {
             log.error("调用微信登录接口异常", e);
             throw new BusinessException(500, "微信登录失败，请稍后重试");
+        }
+    }
+
+    private JSONObject getDouyinSession(String code) {
+        if (StringUtils.isAnyBlank(dyMiniAppId, dyMiniAppSecret)) {
+            throw new BusinessException(500, "抖音小程序登录配置缺失");
+        }
+
+        String requestUrl = String.format(dyJscode2sessionUrl, dyMiniAppId, dyMiniAppSecret, code);
+        try {
+            String response = restTemplate.getForObject(requestUrl, String.class);
+            if (StringUtils.isBlank(response)) {
+                throw BusinessException.badRequest("抖音登录失败，请稍后重试");
+            }
+
+            JSONObject jsonObject = JSON.parseObject(response);
+            Integer errNo = jsonObject.getInteger("err_no");
+            if (errNo != null && errNo != 0) {
+                String errTips = jsonObject.getString("err_tips");
+                log.warn("抖音登录失败: err_no={}, err_tips={}", errNo, errTips);
+                throw BusinessException.badRequest("抖音登录失败:" + StringUtils.defaultIfBlank(errTips, "未知错误"));
+            }
+
+            JSONObject data = jsonObject.getJSONObject("data");
+            if (data == null) {
+                throw BusinessException.badRequest("抖音登录失败，未获取到用户数据");
+            }
+            return data;
+        } catch (RestClientException e) {
+            log.error("调用抖音登录接口异常", e);
+            throw new BusinessException(500, "抖音登录失败，请稍后重试");
         }
     }
 

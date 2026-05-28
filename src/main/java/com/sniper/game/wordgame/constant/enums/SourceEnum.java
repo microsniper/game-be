@@ -20,14 +20,9 @@ public enum SourceEnum implements CodeEnum {
     WECHAT(1, "微信小程序"),
 
     /**
-     * 2-支付宝小程序
+     * 2-抖音小程序
      */
-    ALIPAY(2, "支付宝小程序"),
-
-    /**
-     * 3-H5网页
-     */
-    H5(3, "H5网页"),
+    DOUYIN(2, "抖音小程序"),
     ;
 
     private final Integer code;

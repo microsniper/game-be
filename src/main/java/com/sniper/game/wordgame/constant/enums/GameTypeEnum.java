@@ -15,9 +15,9 @@ import org.apache.commons.lang3.StringUtils;
 public enum GameTypeEnum implements CodeEnum {
 
     /**
-     * 1-螺丝游戏
+     * 1-采摘游戏
      */
-    SCREW(1, "螺丝游戏"),
+    SCREW(1, "采摘游戏"),
     ;
 
     private final Integer code;

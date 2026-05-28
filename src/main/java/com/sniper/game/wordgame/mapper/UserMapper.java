@@ -8,5 +8,7 @@ public interface UserMapper {
 
     User findByOpenidAndGameType(@Param("openid") String openid, @Param("gameType") GameTypeEnum gameType);
 
+    User findById(@Param("id") Long id);
+
     int insert(User user);
 }

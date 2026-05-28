@@ -26,6 +26,13 @@
         limit 1
     </select>
 
+    <select id="findById" resultMap="UserResultMap">
+        select id, openid, unionid, source, game_type, nickname, avatar_url, created_at, updated_at
+        from `user`
+        where id = #{id}
+        limit 1
+    </select>
+
     <insert id="insert" parameterType="com.sniper.game.wordgame.entity.User"
             useGeneratedKeys="true" keyProperty="id">
         insert into `user` (

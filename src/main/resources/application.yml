@@ -45,3 +45,9 @@ wx:
     appid: ${WX_MINIAPP_APPID:}
     secret: ${WX_MINIAPP_SECRET:}
     jscode2session-url: ${WX_MINIAPP_JSCODE2SESSION_URL:https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code}
+
+dy:
+  miniapp:
+    appid: ${DY_MINIAPP_APPID:}
+    secret: ${DY_MINIAPP_SECRET:}
+    jscode2session-url: ${DY_MINIAPP_JSCODE2SESSION_URL:https://developer.toutiao.com/api/apps/v2/jscode2session?appid=%s&secret=%s&code=%s}
