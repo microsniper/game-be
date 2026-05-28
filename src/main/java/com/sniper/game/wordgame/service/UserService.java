@@ -18,9 +18,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -165,9 +170,17 @@ public class UserService {
             throw new BusinessException(500, "抖音小程序登录配置缺失");
         }
 
-        String requestUrl = String.format(dyJscode2sessionUrl, dyMiniAppId, dyMiniAppSecret, code);
+        Map<String, String> body = new HashMap<>();
+        body.put("appid", dyMiniAppId);
+        body.put("secret", dyMiniAppSecret);
+        body.put("code", code);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
+
         try {
-            String response = restTemplate.getForObject(requestUrl, String.class);
+            String response = restTemplate.postForObject(dyJscode2sessionUrl, requestEntity, String.class);
             if (StringUtils.isBlank(response)) {
                 throw BusinessException.badRequest("抖音登录失败，请稍后重试");
             }
