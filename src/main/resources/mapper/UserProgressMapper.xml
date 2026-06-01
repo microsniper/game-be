@@ -43,4 +43,53 @@
         where user_id = #{userId}
           and game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
     </update>
+
+    <select id="findTopRanks" resultType="com.sniper.game.wordgame.dto.RankResponse$RankItem">
+        SELECT
+            dr.rank_num AS `rank`,
+            dr.user_id AS userId,
+            u.nickname,
+            u.avatar_url AS avatarUrl,
+            dr.level_num AS levelNum,
+            0 AS isMe
+        FROM (
+            SELECT
+                user_id,
+                level_num,
+                DENSE_RANK() OVER (ORDER BY level_num DESC) AS rank_num
+            FROM user_progress
+            WHERE game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+        ) dr
+        JOIN `user` u ON u.id = dr.user_id
+        ORDER BY dr.rank_num, u.id
+        LIMIT #{limit}
+    </select>
+
+    <select id="findUserRank" resultType="com.sniper.game.wordgame.dto.RankResponse$RankItem">
+        SELECT
+            dr.rank_num AS `rank`,
+            dr.user_id AS userId,
+            u.nickname,
+            u.avatar_url AS avatarUrl,
+            dr.level_num AS levelNum,
+            1 AS isMe
+        FROM (
+            SELECT
+                user_id,
+                level_num,
+                DENSE_RANK() OVER (ORDER BY level_num DESC) AS rank_num
+            FROM user_progress
+            WHERE game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+        ) dr
+        JOIN `user` u ON u.id = dr.user_id
+        WHERE dr.user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="countHigherLevels" resultType="int">
+        SELECT COUNT(DISTINCT up.level_num)
+        FROM user_progress up
+        WHERE up.game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+          AND up.level_num > #{levelNum}
+    </select>
 </mapper>

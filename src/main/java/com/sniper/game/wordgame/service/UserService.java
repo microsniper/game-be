@@ -6,6 +6,7 @@ import com.sniper.game.wordgame.constant.CommonConstants;
 import com.sniper.game.wordgame.constant.RedisKeyConstants;
 import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
+import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.dto.LoginResponse;
 import com.sniper.game.wordgame.entity.User;
 import com.sniper.game.wordgame.entity.UserProgress;
@@ -123,6 +124,37 @@ public class UserService {
             return;
         }
         userProgressMapper.updateLevelNum(userId, gameType, levelNum);
+    }
+
+    public RankResponse getRankList(Long userId, GameTypeEnum gameType) {
+        List<RankResponse.RankItem> topList = userProgressMapper.findTopRanks(gameType, 20);
+
+        RankResponse.RankItem myRank = userProgressMapper.findUserRank(userId, gameType);
+        if (myRank == null) {
+            UserProgress progress = userProgressMapper.findByUserIdAndGameType(userId, gameType);
+            if (progress != null) {
+                User user = userMapper.findById(userId);
+                int higherCount = userProgressMapper.countHigherLevels(gameType, progress.getLevelNum());
+                myRank = new RankResponse.RankItem();
+                myRank.setRank(higherCount + 1);
+                myRank.setUserId(userId);
+                myRank.setNickname(user != null ? user.getNickname() : null);
+                myRank.setAvatarUrl(user != null ? user.getAvatarUrl() : null);
+                myRank.setLevelNum(progress.getLevelNum());
+                myRank.setIsMe(true);
+            }
+        }
+
+        for (RankResponse.RankItem item : topList) {
+            if (item.getUserId().equals(userId)) {
+                item.setIsMe(true);
+                if (myRank == null) {
+                    myRank = item;
+                }
+            }
+        }
+
+        return new RankResponse(myRank, topList);
     }
 
     public Long getUserIdByToken(String token) {

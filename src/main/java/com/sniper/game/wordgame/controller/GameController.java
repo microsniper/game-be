@@ -3,6 +3,8 @@ package com.sniper.game.wordgame.controller;
 import com.sniper.game.wordgame.dto.LoginRequest;
 import com.sniper.game.wordgame.dto.LoginResponse;
 import com.sniper.game.wordgame.dto.ProgressRequest;
+import com.sniper.game.wordgame.dto.RankRequest;
+import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.service.UserService;
 import com.sniper.game.wordgame.util.UserContext;
 import com.sniper.game.wordgame.vo.Result;
@@ -32,5 +34,11 @@ public class GameController {
     public Result<Void> saveProgress(@Valid @RequestBody ProgressRequest request) {
         userService.saveProgress(UserContext.getCurrentUserId(), request.getGameType(), request.getLevelNum());
         return Result.success();
+    }
+
+    @PostMapping("/rank")
+    public Result<RankResponse> rank(@Valid @RequestBody RankRequest request) {
+        Long userId = UserContext.getCurrentUserId();
+        return Result.success(userService.getRankList(userId, request.getGameType()));
     }
 }
