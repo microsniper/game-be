@@ -158,6 +158,13 @@ public class UserService {
         return new RankResponse(myRank, topList);
     }
 
+    public void updateProfile(Long userId, String nickname, String avatarUrl) {
+        if (userId == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+        userMapper.updateProfile(userId, nickname, avatarUrl);
+    }
+
     public Long getUserIdByToken(String token) {
         if (StringUtils.isBlank(token)) {
             return null;

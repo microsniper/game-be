@@ -44,4 +44,12 @@
             #{nickname}, #{avatarUrl}, now(), now()
         )
     </insert>
+
+    <update id="updateProfile">
+        update `user`
+        set nickname = #{nickname},
+            avatar_url = #{avatarUrl},
+            updated_at = now()
+        where id = #{id}
+    </update>
 </mapper>

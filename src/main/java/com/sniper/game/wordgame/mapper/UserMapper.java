@@ -11,4 +11,8 @@ public interface UserMapper {
     User findById(@Param("id") Long id);
 
     int insert(User user);
+
+    int updateProfile(@Param("id") Long id,
+                      @Param("nickname") String nickname,
+                      @Param("avatarUrl") String avatarUrl);
 }
