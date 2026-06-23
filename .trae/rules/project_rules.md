@@ -1,7 +1,7 @@
 # 螺丝游戏项目规则
 
 ## 项目概述
-螺丝解谜游戏，包含前端（uni-app）和后端（Spring Boot）两个子项目。
+摘果子游戏，包含前端（uni-app）和后端（Spring Boot）两个子项目。
 
 ## 前端项目 (screw-game)
 - **路径**: /Users/sniper/java/project/self/personal/screw/screw-game

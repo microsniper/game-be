@@ -165,6 +165,30 @@ public class UserService {
         userMapper.updateProfile(userId, nickname, avatarUrl);
     }
 
+    public void consumeShareCount(Long userId, GameTypeEnum gameType) {
+        if (userId == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+
+        // 获取当前时间到明晚0点的秒数
+        long secondsTillMidnight = java.time.LocalDateTime.now().until(
+                java.time.LocalDateTime.now().plusDays(1).with(java.time.LocalTime.MIN),
+                java.time.temporal.ChronoUnit.SECONDS
+        );
+
+        String todayStr = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String key = String.format("game:share_count:%s:%s:%s", gameType.name(), userId, todayStr);
+
+        Long count = redisUtils.increment(key, 1);
+        if (count != null && count == 1L) {
+            redisUtils.expire(key, secondsTillMidnight, TimeUnit.SECONDS);
+        }
+
+        if (count != null && count > 3L) {
+            throw new BusinessException(403, "今日分享奖励次数已达上限");
+        }
+    }
+
     public Long getUserIdByToken(String token) {
         if (StringUtils.isBlank(token)) {
             return null;

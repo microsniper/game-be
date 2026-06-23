@@ -6,6 +6,7 @@ import com.sniper.game.wordgame.dto.ProgressRequest;
 import com.sniper.game.wordgame.dto.RankRequest;
 import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.dto.ProfileRequest;
+import com.sniper.game.wordgame.dto.ShareConsumeRequest;
 import com.sniper.game.wordgame.service.UserService;
 import com.sniper.game.wordgame.util.UserContext;
 import com.sniper.game.wordgame.vo.Result;
@@ -47,6 +48,13 @@ public class GameController {
     public Result<Void> updateProfile(@Valid @RequestBody ProfileRequest request) {
         Long userId = UserContext.getCurrentUserId();
         userService.updateProfile(userId, request.getNickname(), request.getAvatarUrl());
+        return Result.success();
+    }
+
+    @PostMapping("/share/consume")
+    public Result<Void> consumeShareCount(@RequestBody ShareConsumeRequest request) {
+        Long userId = UserContext.getCurrentUserId();
+        userService.consumeShareCount(userId, request.getGameType());
         return Result.success();
     }
 }
