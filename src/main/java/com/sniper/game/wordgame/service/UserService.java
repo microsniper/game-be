@@ -6,8 +6,10 @@ import com.sniper.game.wordgame.constant.CommonConstants;
 import com.sniper.game.wordgame.constant.RedisKeyConstants;
 import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
-import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.dto.LoginResponse;
+import com.sniper.game.wordgame.dto.RankResponse;
+import com.sniper.game.wordgame.dto.ShareConsumeResponse;
+import java.time.LocalDateTime;
 import com.sniper.game.wordgame.entity.User;
 import com.sniper.game.wordgame.entity.UserProgress;
 import com.sniper.game.wordgame.exception.BusinessException;
@@ -165,28 +167,28 @@ public class UserService {
         userMapper.updateProfile(userId, nickname, avatarUrl);
     }
 
-    public void consumeShareCount(Long userId, GameTypeEnum gameType) {
+    public ShareConsumeResponse consumeShareCount(Long userId, GameTypeEnum gameType) {
         if (userId == null) {
             throw BusinessException.unauthorized("请先登录");
         }
 
-        // 获取当前时间到明晚0点的秒数
-        long secondsTillMidnight = java.time.LocalDateTime.now().until(
-                java.time.LocalDateTime.now().plusDays(1).with(java.time.LocalTime.MIN),
-                java.time.temporal.ChronoUnit.SECONDS
-        );
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime midnight = now.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        long secondsTillMidnight = java.time.Duration.between(now, midnight).getSeconds();
 
         String todayStr = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String key = String.format("game:share_count:%s:%s:%s", gameType.name(), userId, todayStr);
+        String key = String.format("game:share:count:gameType_%d:userId_%d:%s", gameType.getCode(), userId, todayStr);
 
         Long count = redisUtils.increment(key, 1);
         if (count != null && count == 1L) {
             redisUtils.expire(key, secondsTillMidnight, TimeUnit.SECONDS);
         }
 
-        if (count != null && count > 3L) {
-            throw new BusinessException(403, "今日分享奖励次数已达上限");
+        if (count != null && count > 30L) {
+            throw new BusinessException(403, "今日求助次数已达上限");
         }
+
+        return new ShareConsumeResponse(count != null && count >= 30L);
     }
 
     public Long getUserIdByToken(String token) {

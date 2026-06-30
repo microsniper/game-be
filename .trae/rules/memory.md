@@ -39,3 +39,14 @@
 
 ## 工作约定
 - 写完代码后，要提交并 push
+
+## 后端项目部署命令
+```bash
+docker build -t game:latest . 
+docker compose up -d game-test --force-recreate
+```
+
+## 密码
+redis密码 Zp0303171
+MySQL密码 Zp0303171
+
