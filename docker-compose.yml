@@ -1,0 +1,48 @@
+services:
+  game:
+    build: .
+    image: game:latest
+    container_name: game
+    ports:
+      - "9001:9001"
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - WX_MINIAPP_APPID=${WX_MINIAPP_APPID}
+      - WX_MINIAPP_SECRET=${WX_MINIAPP_SECRET}
+      - DY_MINIAPP_APPID=${DY_MINIAPP_APPID}
+      - DY_MINIAPP_SECRET=${DY_MINIAPP_SECRET}
+    restart: always
+    network_mode: bridge
+
+  game-test:
+    build: .
+    image: game:latest
+    container_name: game-test
+    ports:
+      - "9002:9002"
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_PROFILES_ACTIVE=test
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - WX_MINIAPP_APPID=${TEST_WX_MINIAPP_APPID:-${WX_MINIAPP_APPID}}
+      - WX_MINIAPP_SECRET=${TEST_WX_MINIAPP_SECRET:-${WX_MINIAPP_SECRET}}
+      - DY_MINIAPP_APPID=${TEST_DY_MINIAPP_APPID:-${DY_MINIAPP_APPID}}
+      - DY_MINIAPP_SECRET=${TEST_DY_MINIAPP_SECRET:-${DY_MINIAPP_SECRET}}
+    restart: always
+    network_mode: bridge

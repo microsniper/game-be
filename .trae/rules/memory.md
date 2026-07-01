@@ -42,8 +42,14 @@
 
 ## 后端项目部署命令
 ```bash
+# 构建镜像
 docker build -t game:latest . 
+
+# 启动测试环境容器 (映射 9002 端口，使用 application-test.yml)
 docker compose up -d game-test --force-recreate
+
+# 启动生产环境容器 (映射 9001 端口，使用 application-prod.yml)
+docker compose up -d game --force-recreate
 ```
 
 ## 密码
