@@ -1,8 +1,8 @@
 services:
   game:
     build: .
-    image: game:latest
-    container_name: game
+    image: game-prod:latest
+    container_name: game-prod
     ports:
       - "9001:9001"
     environment:
@@ -25,7 +25,7 @@ services:
 
   game-test:
     build: .
-    image: game:latest
+    image: game-test:latest
     container_name: game-test
     ports:
       - "9002:9002"
