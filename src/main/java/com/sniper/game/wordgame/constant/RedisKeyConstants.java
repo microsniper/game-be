@@ -10,6 +10,6 @@ public class RedisKeyConstants {
     /**
      * 用户登录 Token 前缀
      */
-    public static final String USER_LOGIN_TOKEN = "wordgame:user:login:";
+    public static final String USER_LOGIN_TOKEN = "game:user:login:";
 
 }
