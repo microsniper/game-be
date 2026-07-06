@@ -15,7 +15,7 @@ public class LoginRequest {
     private String code;
 
     @JsonSetter(nulls = Nulls.SKIP)
-    private GameTypeEnum gameType = GameTypeEnum.SCREW;
+    private GameTypeEnum gameType = GameTypeEnum.FRUIT_PICKING;
 
     @JsonSetter(nulls = Nulls.SKIP)
     private SourceEnum source = SourceEnum.WECHAT;

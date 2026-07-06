@@ -9,6 +9,6 @@ public class ShareConsumeRequest {
     private GameTypeEnum gameType;
 
     public GameTypeEnum getGameType() {
-        return gameType != null ? gameType : GameTypeEnum.SCREW;
+        return gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
     }
 }

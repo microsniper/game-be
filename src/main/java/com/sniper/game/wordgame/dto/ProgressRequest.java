@@ -16,6 +16,6 @@ public class ProgressRequest {
     private Integer levelNum;
 
     public GameTypeEnum getGameType() {
-        return gameType != null ? gameType : GameTypeEnum.SCREW;
+        return gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
     }
 }

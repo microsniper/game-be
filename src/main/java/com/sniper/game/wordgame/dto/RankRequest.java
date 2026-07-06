@@ -9,5 +9,5 @@ import lombok.Data;
 public class RankRequest {
 
     @JsonSetter(nulls = Nulls.SKIP)
-    private GameTypeEnum gameType = GameTypeEnum.SCREW;
+    private GameTypeEnum gameType = GameTypeEnum.FRUIT_PICKING;
 }

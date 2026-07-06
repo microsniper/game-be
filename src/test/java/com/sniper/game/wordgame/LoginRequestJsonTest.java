@@ -20,17 +20,17 @@ class LoginRequestJsonTest {
         LoginRequest request = objectMapper.readValue(json, LoginRequest.class);
 
         assertEquals("mock-code", request.getCode());
-        assertEquals(GameTypeEnum.SCREW, request.getGameType());
+        assertEquals(GameTypeEnum.FRUIT_PICKING, request.getGameType());
         assertEquals(SourceEnum.WECHAT, request.getSource());
     }
 
     @Test
     void shouldDeserializeEnumNames() throws Exception {
-        String json = "{\"code\":\"mock-code\",\"gameType\":\"SCREW\",\"source\":\"WECHAT\"}";
+        String json = "{\"code\":\"mock-code\",\"gameType\":\"FRUIT_PICKING\",\"source\":\"WECHAT\"}";
 
         LoginRequest request = objectMapper.readValue(json, LoginRequest.class);
 
-        assertEquals(GameTypeEnum.SCREW, request.getGameType());
+        assertEquals(GameTypeEnum.FRUIT_PICKING, request.getGameType());
         assertEquals(SourceEnum.WECHAT, request.getSource());
     }
 
@@ -41,7 +41,7 @@ class LoginRequestJsonTest {
         LoginRequest request = objectMapper.readValue(json, LoginRequest.class);
 
         assertEquals("mock-code", request.getCode());
-        assertEquals(GameTypeEnum.SCREW, request.getGameType());
+        assertEquals(GameTypeEnum.FRUIT_PICKING, request.getGameType());
         assertEquals(SourceEnum.WECHAT, request.getSource());
     }
 }
