@@ -10,6 +10,10 @@ public interface UserMapper {
 
     User findById(@Param("id") Long id);
 
+    int countByNicknameAndGameTypeExcludeUserId(@Param("nickname") String nickname,
+                                                @Param("gameType") GameTypeEnum gameType,
+                                                @Param("excludeUserId") Long excludeUserId);
+
     int insert(User user);
 
     int updateProfile(@Param("id") Long id,

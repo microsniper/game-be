@@ -2,6 +2,7 @@ package com.sniper.game.wordgame.exception;
 
 import com.sniper.game.wordgame.vo.Result;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -68,6 +69,15 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         log.warn("参数绑定失败: {}", message);
         return Result.error(400, message);
+    }
+
+    /**
+     * 处理数据库唯一约束冲突
+     */
+    @ExceptionHandler(DuplicateKeyException.class)
+    public Result<Void> handleDuplicateKeyException(DuplicateKeyException e) {
+        log.warn("数据库唯一约束冲突: {}", e.getMessage());
+        return Result.error(409, "昵称已存在，请换一个");
     }
 
     /**

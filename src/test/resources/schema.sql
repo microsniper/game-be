@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS `user` (
     `avatar_url` VARCHAR(256),
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (`openid`, `game_type`)
+    UNIQUE (`openid`, `game_type`),
+    UNIQUE (`game_type`, `nickname`)
 );
 
 CREATE TABLE IF NOT EXISTS `user_progress` (

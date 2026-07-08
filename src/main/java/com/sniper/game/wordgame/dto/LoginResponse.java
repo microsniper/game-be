@@ -15,6 +15,8 @@ public class LoginResponse {
 
     private SourceEnum source;
 
+    private Boolean hasProfile;
+
     private Progress progress;
 
     @Data

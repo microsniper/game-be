@@ -32,11 +32,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[A-Za-z0-9\\u4e00-\\u9fa5]{1,6}$");
+    private static final String DEFAULT_NICKNAME = "玩家";
 
     private final UserMapper userMapper;
     private final UserProgressMapper userProgressMapper;
@@ -102,7 +106,9 @@ public class UserService {
         String token = UUID.randomUUID().toString().replace("-", "");
         redisUtils.set(buildTokenKey(token), user.getId(), CommonConstants.TOKEN_EXPIRE_DAYS, TimeUnit.DAYS);
 
-        return new LoginResponse(token, source, new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
+        boolean hasProfile = org.apache.commons.lang3.StringUtils.isNotBlank(user.getNickname()) && org.apache.commons.lang3.StringUtils.isNotBlank(user.getAvatarUrl());
+
+        return new LoginResponse(token, source, hasProfile, new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
     }
 
     public void saveProgress(Long userId, GameTypeEnum gameType, Integer levelNum) {
@@ -164,7 +170,33 @@ public class UserService {
         if (userId == null) {
             throw BusinessException.unauthorized("请先登录");
         }
-        userMapper.updateProfile(userId, nickname, avatarUrl);
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+
+        String normalizedNickname = StringUtils.trimToEmpty(nickname);
+        String normalizedAvatarUrl = StringUtils.trimToEmpty(avatarUrl);
+
+        if (StringUtils.isBlank(normalizedNickname)) {
+            throw BusinessException.badRequest("昵称不能为空");
+        }
+        if (DEFAULT_NICKNAME.equals(normalizedNickname)) {
+            throw BusinessException.badRequest("昵称不能使用默认名");
+        }
+        if (!NICKNAME_PATTERN.matcher(normalizedNickname).matches()) {
+            throw BusinessException.badRequest("昵称限6位，只能使用汉字、字母、数字");
+        }
+        if (StringUtils.isBlank(normalizedAvatarUrl)) {
+            throw BusinessException.badRequest("头像不能为空");
+        }
+
+        int duplicateCount = userMapper.countByNicknameAndGameTypeExcludeUserId(normalizedNickname, user.getGameType(), userId);
+        if (duplicateCount > 0) {
+            throw BusinessException.conflict("昵称已存在，请换一个");
+        }
+
+        userMapper.updateProfile(userId, normalizedNickname, normalizedAvatarUrl);
     }
 
     public ShareConsumeResponse consumeShareCount(Long userId, GameTypeEnum gameType) {
