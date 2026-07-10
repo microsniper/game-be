@@ -83,6 +83,7 @@ public class UserService {
             throw BusinessException.badRequest("登录失败，未获取到openid");
         }
 
+        boolean isNewUser = false;
         User user = userMapper.findByOpenidAndGameType(openid, gameType);
         if (user == null) {
             user = new User();
@@ -91,6 +92,7 @@ public class UserService {
             user.setSource(source);
             user.setGameType(gameType);
             userMapper.insert(user);
+            isNewUser = true;
         }
 
         UserProgress progress = userProgressMapper.findByUserIdAndGameType(user.getId(), gameType);
@@ -108,8 +110,13 @@ public class UserService {
 
         boolean hasProfile = org.apache.commons.lang3.StringUtils.isNotBlank(user.getNickname()) && org.apache.commons.lang3.StringUtils.isNotBlank(user.getAvatarUrl());
 
-        LoginResponse response = new LoginResponse(token, null, source, hasProfile, new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
+        LoginResponse response = new LoginResponse();
+        response.setToken(token);
         response.setOpenid(openid);
+        response.setSource(source);
+        response.setHasProfile(hasProfile);
+        response.setProgress(new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
+        response.setIsNewUser(isNewUser);
         return response;
     }
 

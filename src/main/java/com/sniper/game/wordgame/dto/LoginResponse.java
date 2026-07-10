@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class LoginResponse {
 
     private String token;
@@ -20,6 +19,8 @@ public class LoginResponse {
     private Boolean hasProfile;
 
     private Progress progress;
+
+    private Boolean isNewUser;
 
     @Data
     @NoArgsConstructor
