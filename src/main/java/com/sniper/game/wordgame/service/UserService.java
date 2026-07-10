@@ -108,7 +108,9 @@ public class UserService {
 
         boolean hasProfile = org.apache.commons.lang3.StringUtils.isNotBlank(user.getNickname()) && org.apache.commons.lang3.StringUtils.isNotBlank(user.getAvatarUrl());
 
-        return new LoginResponse(token, source, hasProfile, new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
+        LoginResponse response = new LoginResponse(token, null, source, hasProfile, new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
+        response.setOpenid(openid);
+        return response;
     }
 
     public void saveProgress(Long userId, GameTypeEnum gameType, Integer levelNum) {

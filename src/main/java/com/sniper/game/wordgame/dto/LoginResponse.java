@@ -13,6 +13,8 @@ public class LoginResponse {
 
     private String token;
 
+    private String openid;
+
     private SourceEnum source;
 
     private Boolean hasProfile;
