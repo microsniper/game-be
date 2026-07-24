@@ -55,3 +55,6 @@ docker compose up -d game-prod --force-recreate
 redis密码 Zp0303171
 MySQL密码 Zp0303171
 
+## 分包命令
+python3 fix_subpackage.py
+

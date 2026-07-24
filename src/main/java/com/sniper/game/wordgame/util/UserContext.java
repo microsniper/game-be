@@ -12,6 +12,7 @@ public class UserContext {
 
     private static final String HEADER_TOKEN = "Authorization";
     private static final String USER_ID_ATTR = "currentUserId";
+    private static final String OPENID_ATTR = "currentOpenid";
 
     private UserContext() {
     }
@@ -57,4 +58,21 @@ public class UserContext {
         return request != null ? (Long) request.getAttribute(USER_ID_ATTR) : null;
     }
 
+    /**
+     * 设置当前用户 openid
+     */
+    public static void setCurrentOpenid(String openid) {
+        HttpServletRequest request = getRequest();
+        if (request != null) {
+            request.setAttribute(OPENID_ATTR, openid);
+        }
+    }
+
+    /**
+     * 获取当前用户 openid
+     */
+    public static String getCurrentOpenid() {
+        HttpServletRequest request = getRequest();
+        return request != null ? (String) request.getAttribute(OPENID_ATTR) : null;
+    }
 }

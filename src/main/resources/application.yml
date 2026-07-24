@@ -48,3 +48,8 @@ dy:
     appid: ${DY_MINIAPP_APPID:}
     secret: ${DY_MINIAPP_SECRET:}
     jscode2session-url: ${DY_MINIAPP_JSCODE2SESSION_URL:https://developer.toutiao.com/api/apps/v2/jscode2session}
+
+# 飞书机器人通知
+feishu:
+  webhook:
+    url: ${FEISHU_WEBHOOK_URL:https://open.feishu.cn/open-apis/bot/v2/hook/2caebfd0-db3f-4ef8-a1c1-fc9747e51a2f}

@@ -20,6 +20,7 @@ services:
       - WX_MINIAPP_SECRET=${WX_MINIAPP_SECRET}
       - DY_MINIAPP_APPID=${DY_MINIAPP_APPID}
       - DY_MINIAPP_SECRET=${DY_MINIAPP_SECRET}
+      - FEISHU_WEBHOOK_URL=${FEISHU_WEBHOOK_URL}
     restart: always
     network_mode: bridge
 
@@ -44,5 +45,6 @@ services:
       - WX_MINIAPP_SECRET=${TEST_WX_MINIAPP_SECRET:-${WX_MINIAPP_SECRET}}
       - DY_MINIAPP_APPID=${TEST_DY_MINIAPP_APPID:-${DY_MINIAPP_APPID}}
       - DY_MINIAPP_SECRET=${TEST_DY_MINIAPP_SECRET:-${DY_MINIAPP_SECRET}}
+      - FEISHU_WEBHOOK_URL=${FEISHU_WEBHOOK_URL}
     restart: always
     network_mode: bridge

@@ -2,6 +2,7 @@ package com.sniper.game.wordgame.controller;
 
 import com.sniper.game.wordgame.dto.LoginRequest;
 import com.sniper.game.wordgame.dto.LoginResponse;
+import com.sniper.game.wordgame.dto.GameConfigResponse;
 import com.sniper.game.wordgame.dto.ProgressRequest;
 import com.sniper.game.wordgame.dto.RankRequest;
 import com.sniper.game.wordgame.dto.RankResponse;
@@ -31,6 +32,11 @@ public class GameController {
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return Result.success(userService.login(request.getCode(), request.getGameType(), request.getSource()));
+    }
+
+    @PostMapping("/config")
+    public Result<GameConfigResponse> getGameConfig(@RequestBody ProgressRequest request) {
+        return Result.success(userService.getGameConfig(request.getGameType()));
     }
 
     @PostMapping("/progress")

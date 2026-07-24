@@ -52,6 +52,10 @@ public class WebLogAspect {
         Long userId = UserContext.getCurrentUserId();
         if (userId != null) {
             log.info("UserID         : {}", userId);
+            String openid = UserContext.getCurrentOpenid();
+            if (openid != null) {
+                log.info("Openid         : {}", openid);
+            }
         }
         
         log.info("Request Args   : {}", requestParams);

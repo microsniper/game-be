@@ -24,3 +24,15 @@ CREATE TABLE IF NOT EXISTS `user_progress` (
     UNIQUE KEY `uk_user_game_type` (`user_id`, `game_type`),
     CONSTRAINT `fk_user_progress_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户进度表';
+
+CREATE TABLE IF NOT EXISTS `game_config` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `game_type` TINYINT NOT NULL COMMENT '游戏类型 1=采摘游戏',
+    `config_key` VARCHAR(64) NOT NULL COMMENT '配置键名',
+    `config_value` TEXT NOT NULL COMMENT '配置值',
+    `description` VARCHAR(256) DEFAULT NULL COMMENT '说明',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_game_type_key` (`game_type`, `config_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='游戏配置表';

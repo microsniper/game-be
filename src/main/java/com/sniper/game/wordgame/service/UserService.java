@@ -6,13 +6,17 @@ import com.sniper.game.wordgame.constant.CommonConstants;
 import com.sniper.game.wordgame.constant.RedisKeyConstants;
 import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
+import com.alibaba.fastjson.TypeReference;
+import com.sniper.game.wordgame.dto.GameConfigResponse;
 import com.sniper.game.wordgame.dto.LoginResponse;
 import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.dto.ShareConsumeResponse;
 import java.time.LocalDateTime;
+import com.sniper.game.wordgame.entity.GameConfig;
 import com.sniper.game.wordgame.entity.User;
 import com.sniper.game.wordgame.entity.UserProgress;
 import com.sniper.game.wordgame.exception.BusinessException;
+import com.sniper.game.wordgame.mapper.GameConfigMapper;
 import com.sniper.game.wordgame.mapper.UserMapper;
 import com.sniper.game.wordgame.mapper.UserProgressMapper;
 import com.sniper.game.wordgame.util.RedisUtils;
@@ -44,6 +48,7 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final UserProgressMapper userProgressMapper;
+    private final GameConfigMapper gameConfigMapper;
     private final RedisUtils redisUtils;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -117,6 +122,8 @@ public class UserService {
         response.setHasProfile(hasProfile);
         response.setProgress(new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
         response.setIsNewUser(isNewUser);
+        log.info("UserID         : {}", user.getId());
+        log.info("用户登录: userId={}, openid={}, isNew={}, level={}", user.getId(), openid, isNewUser, progress.getLevelNum());
         return response;
     }
 
@@ -138,10 +145,39 @@ public class UserService {
             return;
         }
 
-        if (levelNum <= progress.getLevelNum()) {
-            return;
-        }
         userProgressMapper.updateLevelNum(userId, gameType, levelNum);
+    }
+
+    public GameConfigResponse getGameConfig(GameTypeEnum gameType) {
+        GameTypeEnum gt = gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
+        List<GameConfig> configs = gameConfigMapper.findByGameType(gt);
+
+        GameConfigResponse response = new GameConfigResponse();
+
+        for (GameConfig config : configs) {
+            String key = config.getConfigKey();
+            String value = config.getConfigValue();
+
+            switch (key) {
+                case "challenge_interval":
+                    response.setChallengeInterval(Integer.parseInt(value));
+                    break;
+                case "normal_weights":
+                    response.setNormalWeights(JSON.parseObject(value, GameConfigResponse.Weights.class));
+                    break;
+                case "challenge_weights":
+                    response.setChallengeWeights(JSON.parseObject(value, GameConfigResponse.Weights.class));
+                    break;
+                case "box_capacity":
+                    response.setBoxCapacity(JSON.parseObject(value, new TypeReference<List<GameConfigResponse.CapacityRange>>() {}));
+                    break;
+                case "tool_costs":
+                    response.setToolCosts(JSON.parseObject(value, GameConfigResponse.ToolCosts.class));
+                    break;
+            }
+        }
+
+        return response;
     }
 
     public RankResponse getRankList(Long userId, GameTypeEnum gameType) {
@@ -225,11 +261,11 @@ public class UserService {
             redisUtils.expire(key, secondsTillMidnight, TimeUnit.SECONDS);
         }
 
-        if (count != null && count > 30L) {
+        if (count != null && count > 5L) {
             throw new BusinessException(403, "今日求助次数已达上限");
         }
 
-        return new ShareConsumeResponse(count != null && count >= 30L);
+        return new ShareConsumeResponse(count != null && count >= 5L);
     }
 
     public Long getUserIdByToken(String token) {
@@ -244,6 +280,11 @@ public class UserService {
             return ((Number) value).longValue();
         }
         return Long.valueOf(String.valueOf(value));
+    }
+
+    public String getOpenidByUserId(Long userId) {
+        User user = userMapper.findById(userId);
+        return user != null ? user.getOpenid() : null;
     }
 
     private JSONObject getWechatSession(String code) {

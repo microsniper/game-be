@@ -41,6 +41,12 @@ public class TokenInterceptor implements HandlerInterceptor {
                 return false;
             }
             UserContext.setCurrentUserId(userId);
+
+            // 同时获取 openid 供日志使用
+            String openid = userService.getOpenidByUserId(userId);
+            if (openid != null) {
+                UserContext.setCurrentOpenid(openid);
+            }
         } catch (BusinessException e) {
             writeUnauthorized(response, e.getMessage());
             return false;
