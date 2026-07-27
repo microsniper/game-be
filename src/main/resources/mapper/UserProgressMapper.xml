@@ -44,32 +44,26 @@
           and game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
     </update>
 
+    <!-- 排行榜TOP N：仅排序+LIMIT，DENSE_RANK 在 Java 层计算，避免窗口函数全表扫描 -->
     <select id="findTopRanks" resultType="com.sniper.game.wordgame.dto.RankResponse$RankItem">
         SELECT
-            rn.rank_num AS `rank`,
-            rn.user_id AS userId,
+            up.user_id AS userId,
             u.nickname,
             u.avatar_url AS avatarUrl,
-            rn.level_num AS levelNum,
+            up.level_num AS levelNum,
             0 AS isMe
-        FROM (
-            SELECT
-                up.user_id,
-                up.level_num,
-                (SELECT COUNT(DISTINCT up2.level_num) FROM user_progress up2
-                 WHERE up2.game_type = up.game_type AND up2.level_num > up.level_num) + 1 AS rank_num
-            FROM user_progress up
-            WHERE up.game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
-        ) rn
-        JOIN `user` u ON u.id = rn.user_id
-        ORDER BY rn.rank_num, rn.user_id
+        FROM user_progress up
+        JOIN `user` u ON u.id = up.user_id
+        WHERE up.game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+        ORDER BY up.level_num DESC, up.user_id
         LIMIT #{limit}
     </select>
 
     <select id="findUserRank" resultType="com.sniper.game.wordgame.dto.RankResponse$RankItem">
         SELECT
             (SELECT COUNT(DISTINCT up2.level_num) FROM user_progress up2
-             WHERE up2.game_type = up.game_type AND up2.level_num > up.level_num) + 1 AS `rank`,
+             WHERE up2.game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+               AND up2.level_num > up.level_num) + 1 AS `rank`,
             up.user_id AS userId,
             u.nickname,
             u.avatar_url AS avatarUrl,

@@ -183,6 +183,17 @@ public class UserService {
     public RankResponse getRankList(Long userId, GameTypeEnum gameType) {
         List<RankResponse.RankItem> topList = userProgressMapper.findTopRanks(gameType, 20);
 
+        // 在 Java 层计算 DENSE_RANK，避免 MySQL 窗口函数全表扫描
+        int rank = 0;
+        int prevLevel = -1;
+        for (RankResponse.RankItem item : topList) {
+            if (item.getLevelNum() != prevLevel) {
+                rank++;
+                prevLevel = item.getLevelNum();
+            }
+            item.setRank(rank);
+        }
+
         RankResponse.RankItem myRank = userProgressMapper.findUserRank(userId, gameType);
         if (myRank == null) {
             UserProgress progress = userProgressMapper.findByUserIdAndGameType(userId, gameType);

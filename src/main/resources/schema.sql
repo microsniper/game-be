@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS `user_progress` (
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_game_type` (`user_id`, `game_type`),
+    KEY `idx_game_type_level` (`game_type`, `level_num`),
     CONSTRAINT `fk_user_progress_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户进度表';
 
