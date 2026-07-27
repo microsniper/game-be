@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sniper.game.wordgame.mapper.GameConfigMapper">
+
+    <resultMap id="GameConfigResultMap" type="com.sniper.game.wordgame.entity.GameConfig">
+        <id column="id" property="id"/>
+        <result column="game_type" property="gameType"/>
+        <result column="config_key" property="configKey"/>
+        <result column="config_value" property="configValue"/>
+        <result column="description" property="description"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findByGameType" resultMap="GameConfigResultMap">
+        SELECT id, game_type, config_key, config_value, description, created_at, updated_at
+        FROM game_config
+        WHERE game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+    </select>
+
+    <select id="findByConfigKey" resultMap="GameConfigResultMap">
+        SELECT id, game_type, config_key, config_value, description, created_at, updated_at
+        FROM game_config
+        WHERE config_key = #{configKey, jdbcType=VARCHAR}
+        LIMIT 1
+    </select>
+</mapper>
