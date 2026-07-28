@@ -22,6 +22,8 @@ public class LoginResponse {
 
     private Boolean isNewUser;
 
+    private Boolean dailyRewardClaimable;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

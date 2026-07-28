@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class UserService {
 
-    private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[A-Za-z0-9\\u4e00-\\u9fa5]{1,6}$");
+    private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[\\P{Cntrl}]{1,32}$");
     private static final String DEFAULT_NICKNAME = "玩家";
 
     private final UserMapper userMapper;
@@ -122,8 +122,15 @@ public class UserService {
         response.setHasProfile(hasProfile);
         response.setProgress(new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
         response.setIsNewUser(isNewUser);
+
+        // 检查今日是否已领取每日登录奖励
+        String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        String rewardKey = "game:daily_reward:source_" + source.name() + ":game_type_" + gameType.name() + ":" + today + ":user_id_" + user.getId();
+        boolean claimed = redisUtils.get(rewardKey) != null;
+        response.setDailyRewardClaimable(!claimed);
+
         log.info("UserID         : {}", user.getId());
-        log.info("用户登录: userId={}, openid={}, isNew={}, level={}", user.getId(), openid, isNewUser, progress.getLevelNum());
+        log.info("用户登录: userId={}, openid={}, isNew={}, level={}, dailyRewardClaimable={}", user.getId(), openid, isNewUser, progress.getLevelNum(), !claimed);
         return response;
     }
 
@@ -173,6 +180,9 @@ public class UserService {
                     break;
                 case "tool_costs":
                     response.setToolCosts(JSON.parseObject(value, GameConfigResponse.ToolCosts.class));
+                    break;
+                case "daily_login_reward":
+                    response.setDailyLoginReward(Integer.parseInt(value));
                     break;
             }
         }
@@ -241,17 +251,13 @@ public class UserService {
             throw BusinessException.badRequest("昵称不能使用默认名");
         }
         if (!NICKNAME_PATTERN.matcher(normalizedNickname).matches()) {
-            throw BusinessException.badRequest("昵称限6位，只能使用汉字、字母、数字");
+            throw BusinessException.badRequest("昵称最长32位，不能包含控制字符");
         }
         if (StringUtils.isBlank(normalizedAvatarUrl)) {
             throw BusinessException.badRequest("头像不能为空");
         }
 
-        int duplicateCount = userMapper.countByNicknameAndGameTypeExcludeUserId(normalizedNickname, user.getGameType(), userId);
-        if (duplicateCount > 0) {
-            throw BusinessException.conflict("昵称已存在，请换一个");
-        }
-
+        // 微信昵称允许重复，不再强制唯一
         userMapper.updateProfile(userId, normalizedNickname, normalizedAvatarUrl);
     }
 

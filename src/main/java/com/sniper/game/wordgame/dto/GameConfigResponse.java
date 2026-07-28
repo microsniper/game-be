@@ -16,6 +16,8 @@ public class GameConfigResponse {
 
     private ToolCosts toolCosts;
 
+    private Integer dailyLoginReward;
+
     @Data
     public static class Weights {
         private Integer temp;
