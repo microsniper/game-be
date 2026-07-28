@@ -44,14 +44,14 @@ public class WebLogAspect {
         }
 
         log.info("================ Request Start ================");
-        log.info("URL            : {}", url);
+        log.info("URL            : \u001B[96m{}\u001B[0m", url);
         log.info("HTTP Method    : {}", method);
         log.info("Class Method   : {}", classMethod);
         log.info("IP             : {}", ip);
         
         Long userId = UserContext.getCurrentUserId();
         if (userId != null) {
-            log.info("UserID         : {}", userId);
+            log.info("UserID         : \u001B[93m{}\u001B[0m", userId);
             String openid = UserContext.getCurrentOpenid();
             if (openid != null) {
                 log.info("Openid         : {}", openid);

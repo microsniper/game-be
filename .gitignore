@@ -34,3 +34,6 @@ build/
 
 ### Environment ###
 .env
+
+### Logs (docker volume mount) ###
+logs/

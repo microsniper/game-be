@@ -30,6 +30,16 @@ spring:
         max-idle: 8
         min-idle: 2
 
+# 日志配置：输出到文件（容器内 /app/logs，由 docker-compose 挂载到宿主机）
+logging:
+  file:
+    name: /app/logs/game-be.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 15
+      total-size-cap: 2GB
+
 # MyBatis 配置
 mybatis:
   mapper-locations: classpath:mapper/*.xml
