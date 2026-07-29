@@ -33,14 +33,6 @@
         limit 1
     </select>
 
-    <select id="countByNicknameAndGameTypeExcludeUserId" resultType="int">
-        select count(1)
-        from `user`
-        where nickname = #{nickname}
-          and game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
-          and id != #{excludeUserId}
-    </select>
-
     <insert id="insert" parameterType="com.sniper.game.wordgame.entity.User"
             useGeneratedKeys="true" keyProperty="id">
         insert into `user` (

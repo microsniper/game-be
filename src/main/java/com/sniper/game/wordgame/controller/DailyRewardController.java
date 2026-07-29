@@ -1,5 +1,6 @@
 package com.sniper.game.wordgame.controller;
 
+import com.sniper.game.wordgame.constant.RedisKeyConstants;
 import com.sniper.game.wordgame.dto.DailyRewardResponse;
 import com.sniper.game.wordgame.entity.GameConfig;
 import com.sniper.game.wordgame.entity.User;
@@ -52,10 +53,7 @@ public class DailyRewardController {
         }
 
         String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        String rewardKey = "game:daily_reward:source_" + user.getSource().name()
-                + ":game_type_" + user.getGameType().name()
-                + ":" + today
-                + ":user_id_" + userId;
+        String rewardKey = RedisKeyConstants.buildDailyRewardKey(user, today);
 
         // 原子操作：防止并发重复领取
         boolean claimed = redisUtils.setIfAbsent(rewardKey, "1", 36, TimeUnit.HOURS);

@@ -18,6 +18,8 @@ public class GameConfigResponse {
 
     private Integer dailyLoginReward;
 
+    private Integer newUserReward;
+
     @Data
     public static class Weights {
         private Integer temp;

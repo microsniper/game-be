@@ -123,14 +123,17 @@ public class UserService {
         response.setProgress(new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
         response.setIsNewUser(isNewUser);
 
-        // 检查今日是否已领取每日登录奖励
+        // 每日登录奖励：Redis 标记不存在 = 今日未领取，可弹窗（key 格式与 claim 接口保持一致）
         String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
-        String rewardKey = "game:daily_reward:source_" + source.name() + ":game_type_" + gameType.name() + ":" + today + ":user_id_" + user.getId();
-        boolean claimed = redisUtils.get(rewardKey) != null;
-        response.setDailyRewardClaimable(!claimed);
+        String rewardKey = RedisKeyConstants.buildDailyRewardKey(user, today);
+        if (isNewUser) {
+            // 新用户首日发新人见面礼，不参与每日登录奖励：直接标记今日已领
+            redisUtils.setIfAbsent(rewardKey, "1", 36, java.util.concurrent.TimeUnit.HOURS);
+        }
+        response.setDailyRewardClaimable(!redisUtils.hasKey(rewardKey));
 
         log.info("UserID         : {}", user.getId());
-        log.info("用户登录: userId={}, openid={}, isNew={}, level={}, dailyRewardClaimable={}", user.getId(), openid, isNewUser, progress.getLevelNum(), !claimed);
+        log.info("用户登录: userId={}, openid={}, isNew={}, level={}", user.getId(), openid, isNewUser, progress.getLevelNum());
         return response;
     }
 
@@ -183,6 +186,9 @@ public class UserService {
                     break;
                 case "daily_login_reward":
                     response.setDailyLoginReward(Integer.parseInt(value));
+                    break;
+                case "new_user_reward":
+                    response.setNewUserReward(Integer.parseInt(value));
                     break;
             }
         }
