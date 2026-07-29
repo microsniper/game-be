@@ -22,8 +22,8 @@ public class SignInterceptor implements HandlerInterceptor {
 
     // 必须和前端保持完全一致
     private static final String SECRET_KEY = "X9vP2xL5mN8qR1sT4wY7zB0cJ3fH6gD9";
-    // 请求时间戳的有效范围，这里设为 2 分钟 (120000 毫秒)
-    private static final long MAX_EXPIRE_TIME = 2 * 60 * 1000;
+    // 请求时间戳的有效范围，这里设为 10 分钟 (600000 毫秒)，兼容设备时钟不准的用户
+    private static final long MAX_EXPIRE_TIME = 10 * 60 * 1000;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
