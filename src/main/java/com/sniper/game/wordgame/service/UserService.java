@@ -127,7 +127,7 @@ public class UserService {
         String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         String rewardKey = RedisKeyConstants.buildDailyRewardKey(user, today);
         if (isNewUser) {
-            // 新用户首日发新人见面礼，不参与每日登录奖励：直接标记今日已领
+            // 新用户首日发新人见面礼，不参与每日登录奖励：直接标记今日已领（第二天起正常）
             redisUtils.setIfAbsent(rewardKey, "1", 36, java.util.concurrent.TimeUnit.HOURS);
         }
         response.setDailyRewardClaimable(!redisUtils.hasKey(rewardKey));

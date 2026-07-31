@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `user` (
     `openid` VARCHAR(64) NOT NULL COMMENT '微信openid',
     `unionid` VARCHAR(64) DEFAULT NULL COMMENT '微信unionid',
     `source` TINYINT NOT NULL DEFAULT 1 COMMENT '1-微信小程序 2-抖音小程序',
-    `game_type` TINYINT NOT NULL DEFAULT 1 COMMENT '1-螺丝游戏',
+    `game_type` TINYINT NOT NULL DEFAULT 1 COMMENT '1-采摘游戏',
     `nickname` VARCHAR(64) DEFAULT NULL COMMENT '昵称（允许重复，微信昵称不唯一）',
     `avatar_url` VARCHAR(512) DEFAULT NULL COMMENT '头像地址',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `user` (
 CREATE TABLE IF NOT EXISTS `user_progress` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
-    `game_type` TINYINT NOT NULL DEFAULT 1 COMMENT '1-螺丝游戏',
+    `game_type` TINYINT NOT NULL DEFAULT 1 COMMENT '1-采摘游戏',
     `level_num` INT NOT NULL DEFAULT 1 COMMENT '当前关卡数',
     `source` TINYINT NOT NULL DEFAULT 1 COMMENT '来源渠道 1-微信小程序 2-抖音小程序',
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
