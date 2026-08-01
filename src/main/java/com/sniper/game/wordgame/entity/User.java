@@ -23,6 +23,9 @@ public class User {
 
     private String avatarUrl;
 
+    /** 地区ID，关联 region.id（数据关联，不加外键） */
+    private Integer regionId;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

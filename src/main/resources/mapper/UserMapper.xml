@@ -14,12 +14,13 @@
                 typeHandler="com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler"/>
         <result column="nickname" property="nickname"/>
         <result column="avatar_url" property="avatarUrl"/>
+        <result column="region_id" property="regionId"/>
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
     </resultMap>
 
     <select id="findByOpenidAndGameType" resultMap="UserResultMap">
-        select id, openid, unionid, source, game_type, nickname, avatar_url, created_at, updated_at
+        select id, openid, unionid, source, game_type, nickname, avatar_url, region_id, created_at, updated_at
         from `user`
         where openid = #{openid}
           and game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
@@ -27,7 +28,7 @@
     </select>
 
     <select id="findById" resultMap="UserResultMap">
-        select id, openid, unionid, source, game_type, nickname, avatar_url, created_at, updated_at
+        select id, openid, unionid, source, game_type, nickname, avatar_url, region_id, created_at, updated_at
         from `user`
         where id = #{id}
         limit 1
@@ -49,6 +50,13 @@
         update `user`
         set nickname = #{nickname},
             avatar_url = #{avatarUrl},
+            updated_at = now()
+        where id = #{id}
+    </update>
+
+    <update id="updateRegionId">
+        update `user`
+        set region_id = #{regionId},
             updated_at = now()
         where id = #{id}
     </update>

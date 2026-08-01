@@ -15,4 +15,6 @@ public interface UserMapper {
     int updateProfile(@Param("id") Long id,
                       @Param("nickname") String nickname,
                       @Param("avatarUrl") String avatarUrl);
+
+    int updateRegionId(@Param("id") Long id, @Param("regionId") Integer regionId);
 }

@@ -122,6 +122,8 @@ public class UserService {
         response.setHasProfile(hasProfile);
         response.setProgress(new LoginResponse.Progress(progress.getGameType(), progress.getLevelNum()));
         response.setIsNewUser(isNewUser);
+        // 已选地区ID直接回前端（没选过为 null），免得前端再单独拉一次
+        response.setRegionId(user.getRegionId());
 
         // 每日登录奖励：Redis 标记不存在 = 今日未领取，可弹窗（key 格式与 claim 接口保持一致）
         String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);

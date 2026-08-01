@@ -7,8 +7,10 @@ import com.sniper.game.wordgame.dto.ProgressRequest;
 import com.sniper.game.wordgame.dto.RankRequest;
 import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.dto.ProfileRequest;
+import com.sniper.game.wordgame.dto.RegionSaveRequest;
 import com.sniper.game.wordgame.dto.ShareConsumeRequest;
 import com.sniper.game.wordgame.dto.ShareConsumeResponse;
+import com.sniper.game.wordgame.service.RegionService;
 import com.sniper.game.wordgame.service.UserService;
 import com.sniper.game.wordgame.util.UserContext;
 import com.sniper.game.wordgame.vo.Result;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 import javax.validation.Valid;
 
 @Validated
@@ -28,6 +32,7 @@ import javax.validation.Valid;
 public class GameController {
 
     private final UserService userService;
+    private final RegionService regionService;
 
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -63,5 +68,19 @@ public class GameController {
         Long userId = UserContext.getCurrentUserId();
         ShareConsumeResponse response = userService.consumeShareCount(userId, request.getGameType());
         return Result.success(response);
+    }
+
+    /** 地区字典列表（缓存优先）：选地区弹窗拉起时调 */
+    @PostMapping("/region/list")
+    public Result<List<RegionService.RegionItem>> regionList() {
+        return Result.success(regionService.listRegions());
+    }
+
+    /** 保存用户选的地区（存 region.id） */
+    @PostMapping("/region")
+    public Result<Void> saveRegion(@Valid @RequestBody RegionSaveRequest request) {
+        Long userId = UserContext.getCurrentUserId();
+        regionService.saveUserRegion(userId, request.getRegionId());
+        return Result.success();
     }
 }
