@@ -7,6 +7,7 @@ import com.sniper.game.wordgame.constant.RedisKeyConstants;
 import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
 import com.alibaba.fastjson.TypeReference;
+import com.sniper.game.wordgame.dto.DailyClearResponse;
 import com.sniper.game.wordgame.dto.DailyRankResponse;
 import com.sniper.game.wordgame.dto.DailyStatusResponse;
 import com.sniper.game.wordgame.dto.GameConfigResponse;
@@ -273,7 +274,25 @@ public class UserService {
         GameTypeEnum gt = gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
         LocalDate today = LocalDate.now();
         UserDailyChallenge record = userDailyChallengeMapper.findByUserAndDate(userId, gt, today);
-        return new DailyStatusResponse(record != null, today.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        Integer bestSeconds = record == null ? null : toValidSeconds(record.getStartAt(), record.getClearAt());
+        return new DailyStatusResponse(record != null, today.format(DateTimeFormatter.ISO_LOCAL_DATE), bestSeconds);
+    }
+
+    /** 挑战耗时下限（秒）：低于此值判定为前端计时不可信，不参与最快成绩 */
+    private static final int MIN_VALID_DURATION_SECONDS = 5;
+    /** 挑战耗时上限（秒）：超过 6 小时判定为挂机或计时异常，不参与最快成绩 */
+    private static final int MAX_VALID_DURATION_SECONDS = 6 * 60 * 60;
+
+    /** 起止时间算耗时；缺失或超出合理区间返回 null */
+    private Integer toValidSeconds(LocalDateTime startAt, LocalDateTime clearAt) {
+        if (startAt == null || clearAt == null) {
+            return null;
+        }
+        long seconds = java.time.Duration.between(startAt, clearAt).getSeconds();
+        if (seconds < MIN_VALID_DURATION_SECONDS || seconds > MAX_VALID_DURATION_SECONDS) {
+            return null;
+        }
+        return (int) seconds;
     }
 
     /**
@@ -309,12 +328,16 @@ public class UserService {
     }
 
     /**
-     * 每日挑战通关上报（过完第 2 关调）：写当天行。
+     * 每日挑战通关上报（过完第 2 关调）：写当天行，并返回本次与今日最快耗时。
+     * <p>
      * region 快照取自 user 表（不接受前端传值，防通关后改省刷榜）；
-     * startAt 为前端计时的挑战开始毫秒时间戳（为空/未来/非法时兜底 now()），clear_at 取服务器时刻；
-     * uk_user_date 幂等：今天已记过直接返回，重复通关不重复计。
+     * startAt 为前端计时的挑战开始毫秒时间戳，clear_at 取服务器时刻。
+     * <p>
+     * uk_user_date 一人一天一行：首次通关插入；之后重复挑战若更快则刷新该行的起止时间，
+     * 所以行内存的始终是当天最快那次，耗时按需相减得出，不额外存时长字段。
+     * 通关人数按行统计，重复挑战不会重复计入省份榜。
      */
-    public void saveDailyClear(Long userId, GameTypeEnum gameType, Long startAt) {
+    public DailyClearResponse saveDailyClear(Long userId, GameTypeEnum gameType, Long startAt) {
         if (userId == null) {
             throw BusinessException.unauthorized("请先登录");
         }
@@ -324,22 +347,44 @@ public class UserService {
             throw BusinessException.unauthorized("请先登录");
         }
         LocalDate today = LocalDate.now();
-        if (userDailyChallengeMapper.findByUserAndDate(userId, gt, today) != null) {
-            return;
-        }
         long nowMillis = System.currentTimeMillis();
-        LocalDateTime startAtTime = (startAt == null || startAt <= 0 || startAt > nowMillis)
-                ? LocalDateTime.now()
-                : LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(startAt), java.time.ZoneId.systemDefault());
-        UserDailyChallenge record = new UserDailyChallenge();
-        record.setUserId(userId);
-        record.setGameType(gt);
-        record.setChallengeDate(today);
-        record.setRegionId(user.getRegionId());
-        record.setStartAt(startAtTime);
-        record.setSource(user.getSource() != null ? user.getSource() : SourceEnum.WECHAT);
-        userDailyChallengeMapper.insert(record);
-        log.info("每日挑战通关: userId={}, date={}, regionId={}, startAt={}", userId, today, user.getRegionId(), startAtTime);
+
+        // 前端计时是否可信：非空、非未来、耗时落在合理区间内。不可信则不参与最快成绩比较
+        boolean trusted = startAt != null && startAt > 0 && startAt <= nowMillis;
+        LocalDateTime startAtTime = trusted
+                ? LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(startAt), java.time.ZoneId.systemDefault())
+                : LocalDateTime.now();
+        Integer currentSeconds = trusted ? toValidSeconds(startAtTime, LocalDateTime.now()) : null;
+        if (currentSeconds == null) {
+            trusted = false;
+        }
+
+        UserDailyChallenge existing = userDailyChallengeMapper.findByUserAndDate(userId, gt, today);
+        boolean newRecord;
+        if (existing == null) {
+            UserDailyChallenge record = new UserDailyChallenge();
+            record.setUserId(userId);
+            record.setGameType(gt);
+            record.setChallengeDate(today);
+            record.setRegionId(user.getRegionId());
+            record.setStartAt(startAtTime);
+            record.setSource(user.getSource() != null ? user.getSource() : SourceEnum.WECHAT);
+            userDailyChallengeMapper.insert(record);
+            newRecord = currentSeconds != null;
+            log.info("每日挑战首次通关: userId={}, date={}, regionId={}, seconds={}",
+                    userId, today, user.getRegionId(), currentSeconds);
+        } else if (trusted) {
+            // 更快才刷新，比较在 SQL 内完成
+            newRecord = userDailyChallengeMapper.updateIfFaster(userId, gt, today, startAtTime) > 0;
+            log.info("每日挑战重复通关: userId={}, date={}, seconds={}, 刷新最快={}",
+                    userId, today, currentSeconds, newRecord);
+        } else {
+            newRecord = false;
+            log.info("每日挑战重复通关但计时不可信，跳过刷新: userId={}, date={}, startAt={}", userId, today, startAt);
+        }
+
+        Integer bestSeconds = userDailyChallengeMapper.findBestSeconds(userId, gt, today);
+        return new DailyClearResponse(currentSeconds, bestSeconds, newRecord);
     }
 
     /**

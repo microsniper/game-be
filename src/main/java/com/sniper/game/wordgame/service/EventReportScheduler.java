@@ -38,20 +38,27 @@ public class EventReportScheduler {
     private final GameConfigMapper gameConfigMapper;
     private final Environment environment;
 
+    /**
+     * 广告场景，需与前端 GameManager.showAdThen 传入的 scene 一一对应。
+     * 前端新增场景后必须在此登记，否则该场景的数据只进 Redis、不进汇总通知。
+     */
     private static final Map<String, String> SCENE_NAMES = new LinkedHashMap<>();
 
     static {
         SCENE_NAMES.put("revive", "复活");
         SCENE_NAMES.put("clear_tray", "清空果盘");
         SCENE_NAMES.put("unlock_basket", "解锁果篮");
+        SCENE_NAMES.put("smash_plate", "砸板子");
     }
 
+    /**
+     * 广告中途关闭/跳过的场景 key（前端统一上报为 场景名 + "_skip"）。
+     * 由 SCENE_NAMES 推导，避免新增场景时漏登记导致跳过数漏统计。
+     */
     private static final Map<String, String> SKIP_SCENES = new LinkedHashMap<>();
 
     static {
-        SKIP_SCENES.put("revive_skip", "复活跳过");
-        SKIP_SCENES.put("clear_tray_skip", "清空果盘跳过");
-        SKIP_SCENES.put("unlock_basket_skip", "解锁果篮跳过");
+        SCENE_NAMES.forEach((key, name) -> SKIP_SCENES.put(key + "_skip", name + "跳过"));
     }
 
     /**

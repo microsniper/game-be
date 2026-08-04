@@ -45,6 +45,38 @@
         )
     </insert>
 
+    <!--
+      重复挑战更快时刷新起止时间。
+      where 里直接比较新旧耗时，比较与写入同一条语句完成，两次通关并发时不会互相覆盖成较慢的那次。
+      旧行 start_at / clear_at 为空（补字段前的历史数据）视为无有效计时，无条件补上。
+    -->
+    <update id="updateIfFaster">
+        update user_daily_challenge
+        set start_at = #{startAt},
+            clear_at = now(),
+            updated_at = now()
+        where user_id = #{userId}
+          and game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+          and challenge_date = #{challengeDate}
+          and (
+                start_at is null
+                or clear_at is null
+                or timestampdiff(second, #{startAt}, now()) &lt; timestampdiff(second, start_at, clear_at)
+              )
+    </update>
+
+    <!-- 当天最快耗时（秒）：行内存的就是最快那次，直接相减 -->
+    <select id="findBestSeconds" resultType="java.lang.Integer">
+        select timestampdiff(second, start_at, clear_at)
+        from user_daily_challenge
+        where user_id = #{userId}
+          and game_type = #{gameType, jdbcType=INTEGER, typeHandler=com.sniper.game.wordgame.typehandler.GameTypeEnumTypeHandler}
+          and challenge_date = #{challengeDate}
+          and start_at is not null
+          and clear_at is not null
+        limit 1
+    </select>
+
     <!-- 省份榜：当天各省通关人数（未选省的不计入），DENSE_RANK 在 Java 层计算 -->
     <select id="countByRegionGroup" resultType="com.sniper.game.wordgame.dto.DailyRankResponse$RankItem">
         SELECT

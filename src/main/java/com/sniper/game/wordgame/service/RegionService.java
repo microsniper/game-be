@@ -1,5 +1,7 @@
 package com.sniper.game.wordgame.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sniper.game.wordgame.entity.Region;
 import com.sniper.game.wordgame.entity.User;
 import com.sniper.game.wordgame.exception.BusinessException;
@@ -31,16 +33,18 @@ public class RegionService {
     private final RegionMapper regionMapper;
     private final UserMapper userMapper;
     private final RedisUtils redisUtils;
+    private final ObjectMapper objectMapper;
 
     /**
      * 拉地区列表：先读 Redis，没有再查库并回填缓存。
      * 返回给前端的精简结构，只有 id 和 name（选择弹窗够用）。
+     * 注意：Redis 反序列化会丢类型信息（元素变 LinkedHashMap），必须用 convertValue 转回 RegionItem，
+     * 否则直接强转会在消费元素时报 ClassCastException。
      */
-    @SuppressWarnings("unchecked")
     public List<RegionItem> listRegions() {
         Object cached = redisUtils.get(REGION_LIST_CACHE_KEY);
         if (cached instanceof List) {
-            return (List<RegionItem>) cached;
+            return objectMapper.convertValue(cached, new TypeReference<List<RegionItem>>() {});
         }
         List<Region> regions = regionMapper.findAllEnabled();
         List<RegionItem> items = new ArrayList<>(regions.size());

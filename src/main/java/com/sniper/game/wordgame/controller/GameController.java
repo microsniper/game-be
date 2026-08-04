@@ -1,6 +1,7 @@
 package com.sniper.game.wordgame.controller;
 
 import com.sniper.game.wordgame.dto.DailyClearRequest;
+import com.sniper.game.wordgame.dto.DailyClearResponse;
 import com.sniper.game.wordgame.dto.DailyRankResponse;
 import com.sniper.game.wordgame.dto.DailyHelpResponse;
 import com.sniper.game.wordgame.dto.DailyStatusResponse;
@@ -66,11 +67,14 @@ public class GameController {
         return Result.success(userService.getDailyStatus(UserContext.getCurrentUserId(), request.getGameType()));
     }
 
-    /** 每日挑战通关上报（过完第 2 关调）：写当天行，uk 幂等；startAt 前端计时随上报写入 */
+    /**
+     * 每日挑战通关上报（过完第 2 关调）：一人一天一行，重复挑战更快则刷新起止时间。
+     * 返回本次与今日最快耗时，通关页直接用，不必再多请求一次。
+     */
     @PostMapping("/daily/clear")
-    public Result<Void> dailyClear(@RequestBody DailyClearRequest request) {
-        userService.saveDailyClear(UserContext.getCurrentUserId(), request.getGameType(), request.getStartAt());
-        return Result.success();
+    public Result<DailyClearResponse> dailyClear(@RequestBody DailyClearRequest request) {
+        return Result.success(
+                userService.saveDailyClear(UserContext.getCurrentUserId(), request.getGameType(), request.getStartAt()));
     }
 
     /** 每日挑战省份榜：当天各省通关人数排行（DENSE_RANK 并列） */
