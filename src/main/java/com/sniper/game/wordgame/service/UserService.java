@@ -7,16 +7,22 @@ import com.sniper.game.wordgame.constant.RedisKeyConstants;
 import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
 import com.alibaba.fastjson.TypeReference;
+import com.sniper.game.wordgame.dto.DailyRankResponse;
+import com.sniper.game.wordgame.dto.DailyStatusResponse;
 import com.sniper.game.wordgame.dto.GameConfigResponse;
 import com.sniper.game.wordgame.dto.LoginResponse;
 import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.dto.ShareConsumeResponse;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import com.sniper.game.wordgame.entity.GameConfig;
 import com.sniper.game.wordgame.entity.User;
+import com.sniper.game.wordgame.entity.UserDailyChallenge;
 import com.sniper.game.wordgame.entity.UserProgress;
 import com.sniper.game.wordgame.exception.BusinessException;
 import com.sniper.game.wordgame.mapper.GameConfigMapper;
+import com.sniper.game.wordgame.mapper.UserDailyChallengeMapper;
 import com.sniper.game.wordgame.mapper.UserMapper;
 import com.sniper.game.wordgame.mapper.UserProgressMapper;
 import com.sniper.game.wordgame.util.RedisUtils;
@@ -48,7 +54,9 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final UserProgressMapper userProgressMapper;
+    private final UserDailyChallengeMapper userDailyChallengeMapper;
     private final GameConfigMapper gameConfigMapper;
+    private final RegionService regionService;
     private final RedisUtils redisUtils;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -192,6 +200,21 @@ public class UserService {
                 case "new_user_reward":
                     response.setNewUserReward(Integer.parseInt(value));
                     break;
+                case "daily_challenge_wave_plan":
+                    response.setDailyWavePlan(JSON.parseObject(value, new TypeReference<java.util.Map<String, GameConfigResponse.WavePlanLevel>>() {}));
+                    break;
+                case "daily_challenge_wave_plates":
+                    response.setDailyWavePlates(JSON.parseObject(value, new TypeReference<java.util.Map<String, GameConfigResponse.WavePlatesLevel>>() {}));
+                    break;
+                case "daily_challenge_box_capacity":
+                    response.setDailyBoxCapacity(JSON.parseObject(value, GameConfigResponse.DailyBoxCapacity.class));
+                    break;
+                case "daily_challenge_challenge_weights":
+                    response.setDailyChallengeWeights(JSON.parseObject(value, GameConfigResponse.Weights.class));
+                    break;
+                case "daily_challenge_layer_rules":
+                    response.setDailyLayerRules(JSON.parseObject(value, GameConfigResponse.DailyLayerRules.class));
+                    break;
             }
         }
 
@@ -238,6 +261,140 @@ public class UserService {
         }
 
         return new RankResponse(myRank, topList);
+    }
+
+    /**
+     * 每日挑战状态：今天是否已通关（读不建行，行存在即代表当天已通关）。
+     */
+    public DailyStatusResponse getDailyStatus(Long userId, GameTypeEnum gameType) {
+        if (userId == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+        GameTypeEnum gt = gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
+        LocalDate today = LocalDate.now();
+        UserDailyChallenge record = userDailyChallengeMapper.findByUserAndDate(userId, gt, today);
+        return new DailyStatusResponse(record != null, today.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    }
+
+    /**
+     * 每日求助好友：今日已用次数（Redis，当天0点自动过期）
+     */
+    public int getDailyHelpUsed(Long userId) {
+        if (userId == null) return 0;
+        String today = LocalDate.now().toString();
+        String key = RedisKeyConstants.buildDailyHelpKey(userId, today);
+        Object val = redisUtils.get(key);
+        if (val == null) return 0;
+        try {
+            return Integer.parseInt(val.toString());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * 每日求助好友：次数+1（Redis increment，首次自增后设TTL到当天结束）
+     */
+    public int useDailyHelp(Long userId) {
+        if (userId == null) return 0;
+        String today = LocalDate.now().toString();
+        String key = RedisKeyConstants.buildDailyHelpKey(userId, today);
+        Long count = redisUtils.increment(key, 1);
+        if (count != null && count == 1) {
+            long secondsTillMidnight = java.time.Duration.between(java.time.LocalDateTime.now(),
+                    LocalDate.now().plusDays(1).atStartOfDay()).getSeconds();
+            redisUtils.expire(key, Math.max(1, secondsTillMidnight), java.util.concurrent.TimeUnit.SECONDS);
+        }
+        return count != null ? count.intValue() : 0;
+    }
+
+    /**
+     * 每日挑战通关上报（过完第 2 关调）：写当天行。
+     * region 快照取自 user 表（不接受前端传值，防通关后改省刷榜）；
+     * startAt 为前端计时的挑战开始毫秒时间戳（为空/未来/非法时兜底 now()），clear_at 取服务器时刻；
+     * uk_user_date 幂等：今天已记过直接返回，重复通关不重复计。
+     */
+    public void saveDailyClear(Long userId, GameTypeEnum gameType, Long startAt) {
+        if (userId == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+        GameTypeEnum gt = gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+        LocalDate today = LocalDate.now();
+        if (userDailyChallengeMapper.findByUserAndDate(userId, gt, today) != null) {
+            return;
+        }
+        long nowMillis = System.currentTimeMillis();
+        LocalDateTime startAtTime = (startAt == null || startAt <= 0 || startAt > nowMillis)
+                ? LocalDateTime.now()
+                : LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(startAt), java.time.ZoneId.systemDefault());
+        UserDailyChallenge record = new UserDailyChallenge();
+        record.setUserId(userId);
+        record.setGameType(gt);
+        record.setChallengeDate(today);
+        record.setRegionId(user.getRegionId());
+        record.setStartAt(startAtTime);
+        record.setSource(user.getSource() != null ? user.getSource() : SourceEnum.WECHAT);
+        userDailyChallengeMapper.insert(record);
+        log.info("每日挑战通关: userId={}, date={}, regionId={}, startAt={}", userId, today, user.getRegionId(), startAtTime);
+    }
+
+    /**
+     * 每日挑战省份榜：当天各省通关人数排行。
+     * 未选省用户不计入榜单；DENSE_RANK 并列与总榜同风格（Java 层计算，避免窗口函数）；
+     * 省份名走 RegionService 字典缓存映射，不 join。
+     */
+    public DailyRankResponse getDailyRankList(Long userId, GameTypeEnum gameType) {
+        if (userId == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+        GameTypeEnum gt = gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
+        LocalDate today = LocalDate.now();
+
+        List<DailyRankResponse.RankItem> topList = userDailyChallengeMapper.countByRegionGroup(gt, today);
+
+        Map<Integer, String> regionNames = new HashMap<>();
+        for (RegionService.RegionItem item : regionService.listRegions()) {
+            regionNames.put(item.getId(), item.getName());
+        }
+
+        int rank = 0;
+        int prevCount = -1;
+        for (DailyRankResponse.RankItem item : topList) {
+            if (item.getClearCount() != prevCount) {
+                rank++;
+                prevCount = item.getClearCount();
+            }
+            item.setRank(rank);
+            item.setRegionName(regionNames.get(item.getRegionId()));
+            item.setIsMe(false);
+        }
+
+        // 我的名次：按我当前选的省份找；我的省当天无人通关则排在已有名次之后、人数 0
+        DailyRankResponse.RankItem myRank = null;
+        User me = userMapper.findById(userId);
+        if (me != null && me.getRegionId() != null) {
+            for (DailyRankResponse.RankItem item : topList) {
+                if (item.getRegionId().equals(me.getRegionId())) {
+                    item.setIsMe(true);
+                    myRank = item;
+                    break;
+                }
+            }
+            if (myRank == null) {
+                myRank = new DailyRankResponse.RankItem();
+                myRank.setRank(rank + 1);
+                myRank.setRegionId(me.getRegionId());
+                myRank.setRegionName(regionNames.get(me.getRegionId()));
+                myRank.setClearCount(0);
+                myRank.setIsMe(true);
+            }
+        }
+
+        return new DailyRankResponse(myRank, topList);
     }
 
     public void updateProfile(Long userId, String nickname, String avatarUrl) {

@@ -1,5 +1,9 @@
 package com.sniper.game.wordgame.controller;
 
+import com.sniper.game.wordgame.dto.DailyClearRequest;
+import com.sniper.game.wordgame.dto.DailyRankResponse;
+import com.sniper.game.wordgame.dto.DailyHelpResponse;
+import com.sniper.game.wordgame.dto.DailyStatusResponse;
 import com.sniper.game.wordgame.dto.LoginRequest;
 import com.sniper.game.wordgame.dto.LoginResponse;
 import com.sniper.game.wordgame.dto.GameConfigResponse;
@@ -54,6 +58,39 @@ public class GameController {
     public Result<RankResponse> rank(@Valid @RequestBody RankRequest request) {
         Long userId = UserContext.getCurrentUserId();
         return Result.success(userService.getRankList(userId, request.getGameType()));
+    }
+
+    /** 每日挑战状态：今天是否已通关（进每日挑战时读） */
+    @PostMapping("/daily/status")
+    public Result<DailyStatusResponse> dailyStatus(@RequestBody ProgressRequest request) {
+        return Result.success(userService.getDailyStatus(UserContext.getCurrentUserId(), request.getGameType()));
+    }
+
+    /** 每日挑战通关上报（过完第 2 关调）：写当天行，uk 幂等；startAt 前端计时随上报写入 */
+    @PostMapping("/daily/clear")
+    public Result<Void> dailyClear(@RequestBody DailyClearRequest request) {
+        userService.saveDailyClear(UserContext.getCurrentUserId(), request.getGameType(), request.getStartAt());
+        return Result.success();
+    }
+
+    /** 每日挑战省份榜：当天各省通关人数排行（DENSE_RANK 并列） */
+    @PostMapping("/daily/rank")
+    public Result<DailyRankResponse> dailyRank(@Valid @RequestBody RankRequest request) {
+        return Result.success(userService.getDailyRankList(UserContext.getCurrentUserId(), request.getGameType()));
+    }
+
+    /** 每日求助好友状态：今日已用次数/上限/剩余 */
+    @PostMapping("/daily-help/status")
+    public Result<DailyHelpResponse> dailyHelpStatus(@RequestBody ProgressRequest request) {
+        Long userId = UserContext.getCurrentUserId();
+        return Result.success(new DailyHelpResponse(userService.getDailyHelpUsed(userId), 4));
+    }
+
+    /** 每日求助好友使用：次数+1，返回最新次数 */
+    @PostMapping("/daily-help/use")
+    public Result<DailyHelpResponse> useDailyHelp(@RequestBody ProgressRequest request) {
+        Long userId = UserContext.getCurrentUserId();
+        return Result.success(new DailyHelpResponse(userService.useDailyHelp(userId), 4));
     }
 
     @PostMapping("/profile")

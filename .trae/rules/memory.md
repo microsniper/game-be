@@ -40,6 +40,12 @@
 ## 工作约定
 - 写完代码后，要提交并 push
 
+## 难度配置
+### 每日挑战
+FRUIT_BLOCK_COVERAGE = 10% 下层水果被上层板盖住 ≥10% 就判不可点
+LAYER_INITIAL_LOAD = 2   开局首批加载 2 层
+LAYER_MAX_COUNT = 10   一关最多 10 层
+
 ## 后端项目部署命令
 ```bash
 # 启动测试环境容器 (映射 9002 端口，使用 application-test.yml)

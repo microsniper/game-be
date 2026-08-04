@@ -57,3 +57,19 @@ INSERT IGNORE INTO `region` (`id`, `code`, `name`, `sort_order`) VALUES
 (21,'46','海南',21),(22,'50','重庆',22),(23,'51','四川',23),(24,'52','贵州',24),(25,'53','云南',25),
 (26,'54','西藏',26),(27,'61','陕西',27),(28,'62','甘肃',28),(29,'63','青海',29),(30,'64','宁夏',30),
 (31,'65','新疆',31),(32,'71','台湾',32),(33,'81','香港',33),(34,'82','澳门',34);
+
+CREATE TABLE IF NOT EXISTS `user_daily_challenge` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `game_type` TINYINT NOT NULL DEFAULT 1 COMMENT '1-采摘游戏',
+    `challenge_date` DATE NOT NULL COMMENT '挑战日期（服务器本地日）',
+    `region_id` INT DEFAULT NULL COMMENT '通关时省份快照，关联 region.id（数据关联，不加外键）',
+    `start_at` DATETIME DEFAULT NULL COMMENT '挑战开始时间（前端计时，通关时随上报写入）',
+    `clear_at` DATETIME DEFAULT NULL COMMENT '过关时间（服务器时刻）',
+    `source` TINYINT NOT NULL DEFAULT 1 COMMENT '来源渠道 1-微信小程序 2-抖音小程序',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间（通关时刻）',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_date` (`user_id`, `game_type`, `challenge_date`),
+    KEY `idx_region_rank` (`game_type`, `challenge_date`, `region_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日挑战通关记录表（每用户每天一行，通关即记）';

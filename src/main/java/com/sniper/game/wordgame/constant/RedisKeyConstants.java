@@ -21,4 +21,11 @@ public class RedisKeyConstants {
                 + ":" + today
                 + ":user_id_" + user.getId();
     }
+
+    /**
+     * 每日求助好友次数 key（每天每用户独立计数，TTL 到当天结束）
+     */
+    public static String buildDailyHelpKey(Long userId, String today) {
+        return "game:daily_help:" + today + ":user_id_" + userId;
+    }
 }
