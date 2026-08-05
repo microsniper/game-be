@@ -46,6 +46,14 @@ FRUIT_BLOCK_COVERAGE = 10% 下层水果被上层板盖住 ≥10% 就判不可点
 LAYER_INITIAL_LOAD = 2   开局首批加载 2 层
 LAYER_MAX_COUNT = 10   一关最多 10 层
 
+## 上传图片
+curl -X POST 'http://localhost:8080/api/game/resource/upload' \
+  -H 'token: <你的登录token>' \
+  -F 'file=@/path/to/reward.png'
+  
+INSERT INTO game_resource (name, url, type) VALUES ('签到第1天奖励', '<上面的url>', 'image');
+INSERT INTO sign_in_reward (day_num, resource_id, reward_type, amount) VALUES (1, LAST_INSERT_ID(), 'sun', 50);
+
 ## 后端项目部署命令
 ```bash
 # 启动测试环境容器 (映射 9002 端口，使用 application-test.yml)

@@ -13,9 +13,12 @@ import com.sniper.game.wordgame.dto.RankRequest;
 import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.dto.ProfileRequest;
 import com.sniper.game.wordgame.dto.RegionSaveRequest;
+import com.sniper.game.wordgame.dto.ResourceUploadResponse;
 import com.sniper.game.wordgame.dto.ShareConsumeRequest;
 import com.sniper.game.wordgame.dto.ShareConsumeResponse;
+import com.sniper.game.wordgame.dto.SignInRewardItem;
 import com.sniper.game.wordgame.service.RegionService;
+import com.sniper.game.wordgame.service.ResourceService;
 import com.sniper.game.wordgame.service.UserService;
 import com.sniper.game.wordgame.util.UserContext;
 import com.sniper.game.wordgame.vo.Result;
@@ -24,7 +27,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -38,6 +43,7 @@ public class GameController {
 
     private final UserService userService;
     private final RegionService regionService;
+    private final ResourceService resourceService;
 
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -123,5 +129,17 @@ public class GameController {
         Long userId = UserContext.getCurrentUserId();
         regionService.saveUserRegion(userId, request.getRegionId());
         return Result.success();
+    }
+
+    /** 公共上传：图片传 OSS，只返回 CDN 地址（不落库） */
+    @PostMapping("/resource/upload")
+    public Result<ResourceUploadResponse> uploadResource(@RequestParam("file") MultipartFile file) {
+        return Result.success(resourceService.upload(file));
+    }
+
+    /** 七日签到奖励配置：7 天列表（含奖励图 URL），前端弹窗渲染用 */
+    @PostMapping("/signin/config")
+    public Result<List<SignInRewardItem>> signInConfig() {
+        return Result.success(resourceService.getSignInRewards());
     }
 }

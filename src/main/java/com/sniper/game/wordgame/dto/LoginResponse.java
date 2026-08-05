@@ -22,8 +22,6 @@ public class LoginResponse {
 
     private Boolean isNewUser;
 
-    private Boolean dailyRewardClaimable;
-
     /** 用户已选的地区ID（region.id），没选过为 null，前端据此决定要不要弹选地区 */
     private Integer regionId;
 

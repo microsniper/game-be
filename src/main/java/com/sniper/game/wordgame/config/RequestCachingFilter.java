@@ -10,7 +10,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * 将 POST 请求的 HttpServletRequest 包装为 RepeatedlyReadRequestWrapper
+ * 将 POST 请求的 HttpServletRequest 包装为 RepeatedlyReadRequestWrapper（供签名拦截器重复读 body）。
+ * multipart 上传请求不包装：缓存流会导致容器解析不出 file 分片（MissingServletRequestPartException）。
  */
 @Component
 public class RequestCachingFilter extends OncePerRequestFilter {
@@ -19,8 +20,10 @@ public class RequestCachingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 只对 /api/game/ 下的 POST 请求进行包装缓存
-        if (request.getRequestURI().startsWith("/api/game") && "POST".equalsIgnoreCase(request.getMethod())) {
+        String contentType = request.getContentType();
+        boolean multipart = contentType != null && contentType.toLowerCase().startsWith("multipart/");
+        // 只对 /api/game/ 下的非 multipart POST 请求进行包装缓存
+        if (!multipart && request.getRequestURI().startsWith("/api/game") && "POST".equalsIgnoreCase(request.getMethod())) {
             RepeatedlyReadRequestWrapper wrappedRequest = new RepeatedlyReadRequestWrapper(request);
             filterChain.doFilter(wrappedRequest, response);
         } else {

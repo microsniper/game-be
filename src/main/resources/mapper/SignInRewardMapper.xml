@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sniper.game.wordgame.mapper.SignInRewardMapper">
+
+    <resultMap id="SignInRewardItemMap" type="com.sniper.game.wordgame.dto.SignInRewardItem">
+        <result column="day_num" property="dayNum"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="reward_type" property="rewardType" typeHandler="com.sniper.game.wordgame.typehandler.RewardTypeHandler"/>
+        <result column="amount" property="amount"/>
+    </resultMap>
+
+    <select id="findAllWithResource" resultMap="SignInRewardItemMap">
+        select r.day_num,
+               res.url as image_url,
+               r.reward_type,
+               r.amount
+        from sign_in_reward r
+                 join game_resource res on r.resource_id = res.id
+        order by r.day_num asc
+    </select>
+</mapper>

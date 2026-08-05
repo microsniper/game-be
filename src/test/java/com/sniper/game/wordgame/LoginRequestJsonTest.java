@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
 import com.sniper.game.wordgame.dto.LoginRequest;
+import com.sniper.game.wordgame.service.ResourceService;
 import org.junit.jupiter.api.Test;
+
+import javax.annotation.Resource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

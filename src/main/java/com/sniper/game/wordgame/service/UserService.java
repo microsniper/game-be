@@ -134,15 +134,6 @@ public class UserService {
         // 已选地区ID直接回前端（没选过为 null），免得前端再单独拉一次
         response.setRegionId(user.getRegionId());
 
-        // 每日登录奖励：Redis 标记不存在 = 今日未领取，可弹窗（key 格式与 claim 接口保持一致）
-        String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
-        String rewardKey = RedisKeyConstants.buildDailyRewardKey(user, today);
-        if (isNewUser) {
-            // 新用户首日发新人见面礼，不参与每日登录奖励：直接标记今日已领（第二天起正常）
-            redisUtils.setIfAbsent(rewardKey, "1", 36, java.util.concurrent.TimeUnit.HOURS);
-        }
-        response.setDailyRewardClaimable(!redisUtils.hasKey(rewardKey));
-
         log.info("UserID         : {}", user.getId());
         log.info("用户登录: userId={}, openid={}, isNew={}, level={}", user.getId(), openid, isNewUser, progress.getLevelNum());
         return response;
@@ -215,6 +206,9 @@ public class UserService {
                     break;
                 case "daily_challenge_layer_rules":
                     response.setDailyLayerRules(JSON.parseObject(value, GameConfigResponse.DailyLayerRules.class));
+                    break;
+                case "endless_layer_rules":
+                    response.setEndlessLayerRules(JSON.parseObject(value, new TypeReference<List<GameConfigResponse.EndlessLayerRuleRange>>() {}));
                     break;
             }
         }
