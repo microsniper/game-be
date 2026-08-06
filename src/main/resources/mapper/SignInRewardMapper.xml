@@ -7,14 +7,15 @@
     <resultMap id="SignInRewardItemMap" type="com.sniper.game.wordgame.dto.SignInRewardItem">
         <result column="day_num" property="dayNum"/>
         <result column="image_url" property="imageUrl"/>
-        <result column="reward_type" property="rewardType" typeHandler="com.sniper.game.wordgame.typehandler.RewardTypeHandler"/>
+        <!-- 奖励类型不再存签到表，经 resource_id 从 game_resource.resource_code 取 -->
+        <result column="resource_code" property="rewardType" typeHandler="com.sniper.game.wordgame.typehandler.ResourceCodeHandler"/>
         <result column="amount" property="amount"/>
     </resultMap>
 
     <select id="findAllWithResource" resultMap="SignInRewardItemMap">
         select r.day_num,
                res.url as image_url,
-               r.reward_type,
+               res.resource_code,
                r.amount
         from sign_in_reward r
                  join game_resource res on r.resource_id = res.id

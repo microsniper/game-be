@@ -11,6 +11,9 @@ public class ProgressRequest {
 
     private GameTypeEnum gameType;
 
+    /** 求助计数模式：dailyChallenge/endlessChallenge（仅 daily-help 接口使用，缺省 dailyChallenge） */
+    private String mode;
+
     @NotNull(message = "levelNum不能为空")
     @Min(value = 1, message = "levelNum最小为1")
     private Integer levelNum;

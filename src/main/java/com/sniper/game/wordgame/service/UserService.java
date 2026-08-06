@@ -13,16 +13,19 @@ import com.sniper.game.wordgame.dto.DailyStatusResponse;
 import com.sniper.game.wordgame.dto.GameConfigResponse;
 import com.sniper.game.wordgame.dto.LoginResponse;
 import com.sniper.game.wordgame.dto.RankResponse;
+import com.sniper.game.wordgame.dto.ResourceItem;
 import com.sniper.game.wordgame.dto.ShareConsumeResponse;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import com.sniper.game.wordgame.entity.GameConfig;
+import com.sniper.game.wordgame.entity.GameResource;
 import com.sniper.game.wordgame.entity.User;
 import com.sniper.game.wordgame.entity.UserDailyChallenge;
 import com.sniper.game.wordgame.entity.UserProgress;
 import com.sniper.game.wordgame.exception.BusinessException;
 import com.sniper.game.wordgame.mapper.GameConfigMapper;
+import com.sniper.game.wordgame.mapper.GameResourceMapper;
 import com.sniper.game.wordgame.mapper.UserDailyChallengeMapper;
 import com.sniper.game.wordgame.mapper.UserMapper;
 import com.sniper.game.wordgame.mapper.UserProgressMapper;
@@ -57,6 +60,7 @@ public class UserService {
     private final UserProgressMapper userProgressMapper;
     private final UserDailyChallengeMapper userDailyChallengeMapper;
     private final GameConfigMapper gameConfigMapper;
+    private final GameResourceMapper gameResourceMapper;
     private final RegionService regionService;
     private final RedisUtils redisUtils;
 
@@ -210,6 +214,9 @@ public class UserService {
                 case "endless_layer_rules":
                     response.setEndlessLayerRules(JSON.parseObject(value, new TypeReference<List<GameConfigResponse.EndlessLayerRuleRange>>() {}));
                     break;
+                case "help_max":
+                    response.setHelpMax(JSON.parseObject(value, GameConfigResponse.HelpMax.class));
+                    break;
             }
         }
 
@@ -290,12 +297,32 @@ public class UserService {
     }
 
     /**
-     * 每日求助好友：今日已用次数（Redis，当天0点自动过期）
+     * 求助好友：模式归一化，仅 dailyChallenge/endlessChallenge 两值，空或非法回落 dailyChallenge
      */
-    public int getDailyHelpUsed(Long userId) {
+    public static String normalizeHelpMode(String mode) {
+        return "endlessChallenge".equals(mode) ? "endlessChallenge" : "dailyChallenge";
+    }
+
+    /**
+     * 求助好友：指定模式的每日上限（help_max 配置键，缺省回落 4）
+     */
+    public int getHelpMax(String mode) {
+        GameConfigResponse.HelpMax hm = getGameConfig(GameTypeEnum.FRUIT_PICKING).getHelpMax();
+        Integer v = null;
+        if (hm != null) {
+            v = "endlessChallenge".equals(normalizeHelpMode(mode))
+                    ? hm.getEndlessChallenge() : hm.getDailyChallenge();
+        }
+        return v != null && v > 0 ? v : 4;
+    }
+
+    /**
+     * 求助好友：指定模式今日已用次数（Redis，当天0点自动过期，两模式分开计数）
+     */
+    public int getDailyHelpUsed(Long userId, String mode) {
         if (userId == null) return 0;
         String today = LocalDate.now().toString();
-        String key = RedisKeyConstants.buildDailyHelpKey(userId, today);
+        String key = RedisKeyConstants.buildDailyHelpKey(userId, today, normalizeHelpMode(mode));
         Object val = redisUtils.get(key);
         if (val == null) return 0;
         try {
@@ -306,12 +333,17 @@ public class UserService {
     }
 
     /**
-     * 每日求助好友：次数+1（Redis increment，首次自增后设TTL到当天结束）
+     * 求助好友：次数+1（Redis increment，首次自增后设TTL到当天结束）。
+     * 达到上限不再自增（后端兜底限流，防绕过前端刷次数），返回当前已用次数。
      */
-    public int useDailyHelp(Long userId) {
+    public int useDailyHelp(Long userId, String mode) {
         if (userId == null) return 0;
+        String m = normalizeHelpMode(mode);
+        int used = getDailyHelpUsed(userId, m);
+        int max = getHelpMax(m);
+        if (used >= max) return used;
         String today = LocalDate.now().toString();
-        String key = RedisKeyConstants.buildDailyHelpKey(userId, today);
+        String key = RedisKeyConstants.buildDailyHelpKey(userId, today, m);
         Long count = redisUtils.increment(key, 1);
         if (count != null && count == 1) {
             long secondsTillMidnight = java.time.Duration.between(java.time.LocalDateTime.now(),
@@ -322,16 +354,36 @@ public class UserService {
     }
 
     /**
+     * 资源表查询：所有登记了类型编码的资源明细列表。
+     * 前端按 resourceCode 组 Map（value=整条数据），以后新增资源只插表不动代码。
+     */
+    public List<ResourceItem> getResourceList() {
+        List<ResourceItem> result = new java.util.ArrayList<>();
+        for (GameResource resource : gameResourceMapper.findAllWithCode()) {
+            if (resource.getResourceCode() == null || StringUtils.isBlank(resource.getUrl())) {
+                continue;
+            }
+            ResourceItem item = new ResourceItem();
+            item.setResourceCode(resource.getResourceCode());
+            item.setUrl(resource.getUrl());
+            item.setName(resource.getName());
+            item.setType(resource.getType());
+            result.add(item);
+        }
+        return result;
+    }
+
+    /**
      * 每日挑战通关上报（过完第 2 关调）：写当天行，并返回本次与今日最快耗时。
      * <p>
      * region 快照取自 user 表（不接受前端传值，防通关后改省刷榜）；
-     * startAt 为前端计时的挑战开始毫秒时间戳，clear_at 取服务器时刻。
+     * startAt/endAt 为前端计时的挑战起止毫秒时间戳，耗时按 endAt - startAt 计（与前端「本次用时」同口径）。
      * <p>
      * uk_user_date 一人一天一行：首次通关插入；之后重复挑战若更快则刷新该行的起止时间，
      * 所以行内存的始终是当天最快那次，耗时按需相减得出，不额外存时长字段。
      * 通关人数按行统计，重复挑战不会重复计入省份榜。
      */
-    public DailyClearResponse saveDailyClear(Long userId, GameTypeEnum gameType, Long startAt) {
+    public DailyClearResponse saveDailyClear(Long userId, GameTypeEnum gameType, Long startAt, Long endAt) {
         if (userId == null) {
             throw BusinessException.unauthorized("请先登录");
         }
@@ -343,12 +395,17 @@ public class UserService {
         LocalDate today = LocalDate.now();
         long nowMillis = System.currentTimeMillis();
 
-        // 前端计时是否可信：非空、非未来、耗时落在合理区间内。不可信则不参与最快成绩比较
-        boolean trusted = startAt != null && startAt > 0 && startAt <= nowMillis;
+        // 前端计时是否可信：起止齐全、顺序正确、不超前太多（容忍设备时钟偏差 2 分钟）。
+        // 耗时以 endAt - startAt 计（同一部设备的钟），与前端「本次用时」口径一致，不含网络延迟
+        boolean trusted = startAt != null && endAt != null && startAt > 0 && endAt >= startAt
+                && startAt <= nowMillis + 120_000 && endAt <= nowMillis + 120_000;
         LocalDateTime startAtTime = trusted
                 ? LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(startAt), java.time.ZoneId.systemDefault())
                 : LocalDateTime.now();
-        Integer currentSeconds = trusted ? toValidSeconds(startAtTime, LocalDateTime.now()) : null;
+        LocalDateTime clearAtTime = trusted
+                ? LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(endAt), java.time.ZoneId.systemDefault())
+                : LocalDateTime.now();
+        Integer currentSeconds = trusted ? toValidSeconds(startAtTime, clearAtTime) : null;
         if (currentSeconds == null) {
             trusted = false;
         }
@@ -362,6 +419,7 @@ public class UserService {
             record.setChallengeDate(today);
             record.setRegionId(user.getRegionId());
             record.setStartAt(startAtTime);
+            record.setClearAt(clearAtTime);
             record.setSource(user.getSource() != null ? user.getSource() : SourceEnum.WECHAT);
             userDailyChallengeMapper.insert(record);
             newRecord = currentSeconds != null;
@@ -369,12 +427,12 @@ public class UserService {
                     userId, today, user.getRegionId(), currentSeconds);
         } else if (trusted) {
             // 更快才刷新，比较在 SQL 内完成
-            newRecord = userDailyChallengeMapper.updateIfFaster(userId, gt, today, startAtTime) > 0;
+            newRecord = userDailyChallengeMapper.updateIfFaster(userId, gt, today, startAtTime, clearAtTime) > 0;
             log.info("每日挑战重复通关: userId={}, date={}, seconds={}, 刷新最快={}",
                     userId, today, currentSeconds, newRecord);
         } else {
             newRecord = false;
-            log.info("每日挑战重复通关但计时不可信，跳过刷新: userId={}, date={}, startAt={}", userId, today, startAt);
+            log.info("每日挑战重复通关但计时不可信，跳过刷新: userId={}, date={}, startAt={}, endAt={}", userId, today, startAt, endAt);
         }
 
         Integer bestSeconds = userDailyChallengeMapper.findBestSeconds(userId, gt, today);

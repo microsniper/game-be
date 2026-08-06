@@ -38,6 +38,9 @@ public class GameConfigResponse {
     /** 无限模式层流规则（按关卡区间）：max=关卡上界，字段缺省回落前端默认值 */
     private List<EndlessLayerRuleRange> endlessLayerRules;
 
+    /** 求助好友每日上限（按模式）：help_max 配置键，缺省回落 4 */
+    private HelpMax helpMax;
+
     @Data
     public static class Weights {
         private Integer temp;
@@ -108,5 +111,11 @@ public class GameConfigResponse {
         private Integer initialLoad;
         private Double refillRatio;
         private Double unburyRatio;
+    }
+
+    @Data
+    public static class HelpMax {
+        private Integer dailyChallenge;
+        private Integer endlessChallenge;
     }
 }

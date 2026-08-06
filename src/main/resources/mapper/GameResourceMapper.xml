@@ -9,4 +9,20 @@
         insert into game_resource (name, url, type)
         values (#{name}, #{url}, #{type})
     </insert>
+
+    <resultMap id="GameResourceMap" type="com.sniper.game.wordgame.entity.GameResource">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="url" property="url"/>
+        <result column="type" property="type"/>
+        <result column="resource_code" property="resourceCode" typeHandler="com.sniper.game.wordgame.typehandler.ResourceCodeHandler"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <select id="findAllWithCode" resultMap="GameResourceMap">
+        select id, name, url, type, resource_code, create_time
+        from game_resource
+        where resource_code is not null
+        order by id asc
+    </select>
 </mapper>

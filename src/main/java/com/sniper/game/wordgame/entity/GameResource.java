@@ -1,5 +1,6 @@
 package com.sniper.game.wordgame.entity;
 
+import com.sniper.game.wordgame.constant.enums.ResourceCodeTypeEnum;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,9 @@ public class GameResource {
 
     /** 资源类型：image */
     private String type;
+
+    /** 资源类型编码（ResourceCodeTypeEnum 的 code），程序按 code 查资源用，可空 */
+    private ResourceCodeTypeEnum resourceCode;
 
     private LocalDateTime createTime;
 }

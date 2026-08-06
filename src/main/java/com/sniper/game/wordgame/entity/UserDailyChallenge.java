@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 /**
  * 每日挑战通关记录：每用户每天一行（uk_user_date），通关即记；
- * 无 level_num（每日挑战仅 2 关，行存在即代表当天已通关）。
+ * 无 level_num（每日挑战仅 1 关，行存在即代表当天已通关）。
  */
 @Data
 public class UserDailyChallenge {

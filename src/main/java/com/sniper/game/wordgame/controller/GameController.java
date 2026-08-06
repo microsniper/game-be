@@ -14,6 +14,7 @@ import com.sniper.game.wordgame.dto.RankResponse;
 import com.sniper.game.wordgame.dto.ProfileRequest;
 import com.sniper.game.wordgame.dto.RegionSaveRequest;
 import com.sniper.game.wordgame.dto.ResourceUploadResponse;
+import com.sniper.game.wordgame.dto.ResourceItem;
 import com.sniper.game.wordgame.dto.ShareConsumeRequest;
 import com.sniper.game.wordgame.dto.ShareConsumeResponse;
 import com.sniper.game.wordgame.dto.SignInRewardItem;
@@ -80,7 +81,7 @@ public class GameController {
     @PostMapping("/daily/clear")
     public Result<DailyClearResponse> dailyClear(@RequestBody DailyClearRequest request) {
         return Result.success(
-                userService.saveDailyClear(UserContext.getCurrentUserId(), request.getGameType(), request.getStartAt()));
+                userService.saveDailyClear(UserContext.getCurrentUserId(), request.getGameType(), request.getStartAt(), request.getEndAt()));
     }
 
     /** 每日挑战省份榜：当天各省通关人数排行（DENSE_RANK 并列） */
@@ -89,18 +90,22 @@ public class GameController {
         return Result.success(userService.getDailyRankList(UserContext.getCurrentUserId(), request.getGameType()));
     }
 
-    /** 每日求助好友状态：今日已用次数/上限/剩余 */
+    /** 求助好友状态：指定模式今日已用次数/上限/剩余（上限读 help_max 配置） */
     @PostMapping("/daily-help/status")
     public Result<DailyHelpResponse> dailyHelpStatus(@RequestBody ProgressRequest request) {
         Long userId = UserContext.getCurrentUserId();
-        return Result.success(new DailyHelpResponse(userService.getDailyHelpUsed(userId), 4));
+        String mode = com.sniper.game.wordgame.service.UserService.normalizeHelpMode(request.getMode());
+        return Result.success(new DailyHelpResponse(
+                userService.getDailyHelpUsed(userId, mode), userService.getHelpMax(mode)));
     }
 
-    /** 每日求助好友使用：次数+1，返回最新次数 */
+    /** 求助好友使用：次数+1（达上限不再自增），返回最新次数 */
     @PostMapping("/daily-help/use")
     public Result<DailyHelpResponse> useDailyHelp(@RequestBody ProgressRequest request) {
         Long userId = UserContext.getCurrentUserId();
-        return Result.success(new DailyHelpResponse(userService.useDailyHelp(userId), 4));
+        String mode = com.sniper.game.wordgame.service.UserService.normalizeHelpMode(request.getMode());
+        return Result.success(new DailyHelpResponse(
+                userService.useDailyHelp(userId, mode), userService.getHelpMax(mode)));
     }
 
     @PostMapping("/profile")
@@ -141,5 +146,11 @@ public class GameController {
     @PostMapping("/signin/config")
     public Result<List<SignInRewardItem>> signInConfig() {
         return Result.success(resourceService.getSignInRewards());
+    }
+
+    /** 资源查询：所有登记了类型编码的资源明细（前端按 resourceCode 组 Map，value=整条数据） */
+    @PostMapping("/resources")
+    public Result<List<ResourceItem>> resources() {
+        return Result.success(userService.getResourceList());
     }
 }

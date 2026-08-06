@@ -1,7 +1,6 @@
 package com.sniper.game.wordgame.dto;
 
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.sniper.game.wordgame.constant.enums.RewardTypeEnum;
+import com.sniper.game.wordgame.constant.enums.ResourceCodeTypeEnum;
 import lombok.Data;
 
 /**
@@ -16,8 +15,8 @@ public class SignInRewardItem {
     /** 奖励图片 OSS CDN 地址 */
     private String imageUrl;
 
-    /** 奖励类型（枚举，见 RewardTypeEnum）；JSON 序列化为小写 code，前端兼容 */
-    private RewardTypeEnum rewardType;
+    /** 奖励类型（取自 game_resource.resource_code，见 ResourceCodeTypeEnum）；JSON 序列化为小写 code，前端兼容 */
+    private ResourceCodeTypeEnum rewardType;
 
     /** 数量 */
     private Integer amount;
