@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sniper.game.wordgame.mapper.GameCollectMapper">
+
+    <resultMap id="CollectItemMap" type="com.sniper.game.wordgame.dto.CollectItemDto">
+        <result column="id" property="id"/>
+        <result column="collect_code" property="collectCode"/>
+        <result column="group_code" property="groupCode"/>
+        <result column="name" property="name"/>
+        <result column="gray_url" property="grayUrl"/>
+        <result column="color_url" property="colorUrl"/>
+        <result column="is_starter_gift" property="isStarterGift"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="CollectItemMap">
+        select id, collect_code, group_code, name, gray_url, color_url, is_starter_gift
+        from game_collect
+    </select>
+</mapper>
