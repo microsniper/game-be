@@ -1,6 +1,7 @@
 package com.sniper.game.wordgame.controller;
 
 import com.sniper.game.wordgame.dto.DailyClearRequest;
+import com.sniper.game.wordgame.dto.FeedbackSubmitRequest;
 import com.sniper.game.wordgame.dto.DailyClearResponse;
 import com.sniper.game.wordgame.dto.DailyRankResponse;
 import com.sniper.game.wordgame.dto.DailyHelpResponse;
@@ -18,8 +19,15 @@ import com.sniper.game.wordgame.dto.ResourceItem;
 import com.sniper.game.wordgame.dto.ShareConsumeRequest;
 import com.sniper.game.wordgame.dto.ShareConsumeResponse;
 import com.sniper.game.wordgame.dto.SignInRewardItem;
+import com.sniper.game.wordgame.dto.RewardConfigRequest;
+import com.sniper.game.wordgame.dto.RewardDrawRequest;
+import com.sniper.game.wordgame.dto.RewardItem;
+import com.sniper.game.wordgame.dto.ShopItemDto;
+import com.sniper.game.wordgame.service.FeedbackService;
 import com.sniper.game.wordgame.service.RegionService;
 import com.sniper.game.wordgame.service.ResourceService;
+import com.sniper.game.wordgame.service.RewardService;
+import com.sniper.game.wordgame.service.ShopService;
 import com.sniper.game.wordgame.service.UserService;
 import com.sniper.game.wordgame.util.UserContext;
 import com.sniper.game.wordgame.vo.Result;
@@ -45,6 +53,9 @@ public class GameController {
     private final UserService userService;
     private final RegionService regionService;
     private final ResourceService resourceService;
+    private final RewardService rewardService;
+    private final ShopService shopService;
+    private final FeedbackService feedbackService;
 
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -136,6 +147,13 @@ public class GameController {
         return Result.success();
     }
 
+    /** 提交用户反馈：设置页"游戏反馈/意见反馈"入口，每人每天限提交 5 条 */
+    @PostMapping("/feedback/submit")
+    public Result<Void> submitFeedback(@Valid @RequestBody FeedbackSubmitRequest request) {
+        feedbackService.submit(UserContext.getCurrentUserId(), request.getFeedbackType(), request.getContent());
+        return Result.success();
+    }
+
     /** 公共上传：图片传 OSS，只返回 CDN 地址（不落库） */
     @PostMapping("/resource/upload")
     public Result<ResourceUploadResponse> uploadResource(@RequestParam("file") MultipartFile file) {
@@ -152,5 +170,23 @@ public class GameController {
     @PostMapping("/resources")
     public Result<List<ResourceItem>> resources() {
         return Result.success(userService.getResourceList());
+    }
+
+    /** 过关奖励配置：阶段 1 固定奖励（通常是金币），按 mode 区分每日挑战/无限模式 */
+    @PostMapping("/reward/config")
+    public Result<RewardItem> rewardConfig(@Valid @RequestBody RewardConfigRequest request) {
+        return Result.success(rewardService.getFixedReward(request.getMode(), 1));
+    }
+
+    /** 过关奖励抽取：阶段 2 按权重无放回抽 count 条（缺省 1）；无副作用，不落用户状态，发放仍由前端处理 */
+    @PostMapping("/reward/draw")
+    public Result<List<RewardItem>> rewardDraw(@Valid @RequestBody RewardDrawRequest request) {
+        return Result.success(rewardService.draw(request.getMode(), request.getStage(), request.getCount()));
+    }
+
+    /** 商城目录：道具关联资源表、收集关联收集表，价格表内配置；购买发放走前端本地账 */
+    @PostMapping("/shop/list")
+    public Result<List<ShopItemDto>> shopList() {
+        return Result.success(shopService.listEnabled());
     }
 }

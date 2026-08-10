@@ -187,11 +187,8 @@ public class UserService {
                 case "box_capacity":
                     response.setBoxCapacity(JSON.parseObject(value, new TypeReference<List<GameConfigResponse.CapacityRange>>() {}));
                     break;
-                case "tool_costs":
-                    response.setToolCosts(JSON.parseObject(value, GameConfigResponse.ToolCosts.class));
-                    break;
-                case "daily_login_reward":
-                    response.setDailyLoginReward(Integer.parseInt(value));
+                case "free_coin_reward":
+                    response.setFreeCoinReward(Integer.parseInt(value));
                     break;
                 case "new_user_reward":
                     response.setNewUserReward(Integer.parseInt(value));
@@ -201,9 +198,6 @@ public class UserService {
                     break;
                 case "daily_challenge_wave_plates":
                     response.setDailyWavePlates(JSON.parseObject(value, new TypeReference<java.util.Map<String, GameConfigResponse.WavePlatesLevel>>() {}));
-                    break;
-                case "daily_challenge_box_capacity":
-                    response.setDailyBoxCapacity(JSON.parseObject(value, GameConfigResponse.DailyBoxCapacity.class));
                     break;
                 case "daily_challenge_challenge_weights":
                     response.setDailyChallengeWeights(JSON.parseObject(value, GameConfigResponse.Weights.class));

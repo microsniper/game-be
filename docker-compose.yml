@@ -21,6 +21,8 @@ services:
       - DY_MINIAPP_APPID=${DY_MINIAPP_APPID}
       - DY_MINIAPP_SECRET=${DY_MINIAPP_SECRET}
       - FEISHU_WEBHOOK_URL=${FEISHU_WEBHOOK_URL}
+      - OSS_ACCESS_KEY_ID=${OSS_ACCESS_KEY_ID}
+      - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET}
     volumes:
       - ./logs/prod:/app/logs
     restart: always
@@ -48,6 +50,8 @@ services:
       - DY_MINIAPP_APPID=${TEST_DY_MINIAPP_APPID:-${DY_MINIAPP_APPID}}
       - DY_MINIAPP_SECRET=${TEST_DY_MINIAPP_SECRET:-${DY_MINIAPP_SECRET}}
       - FEISHU_WEBHOOK_URL=${FEISHU_WEBHOOK_URL}
+      - OSS_ACCESS_KEY_ID=${OSS_ACCESS_KEY_ID}
+      - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET}
     volumes:
       - ./logs/test:/app/logs
     restart: always

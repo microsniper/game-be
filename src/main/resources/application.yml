@@ -65,12 +65,12 @@ dy:
     secret: ${DY_MINIAPP_SECRET:}
     jscode2session-url: ${DY_MINIAPP_JSCODE2SESSION_URL:https://developer.toutiao.com/api/apps/v2/jscode2session}
 
-# 飞书机器人通知
+# 飞书机器人通知（webhook 含 hook token，纯环境变量注入，不入库）
 feishu:
   webhook:
     url: ${FEISHU_WEBHOOK_URL:https://open.feishu.cn/open-apis/bot/v2/hook/2caebfd0-db3f-4ef8-a1c1-fc9747e51a2f}
 
-# 阿里云 OSS（签到奖励图等资源上传）
+# 阿里云 OSS（签到奖励图等资源上传；密钥纯环境变量注入，不入库）
 oss:
   endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
   bucket: ${OSS_BUCKET:fruit-pop-game}

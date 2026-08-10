@@ -14,9 +14,8 @@ public class GameConfigResponse {
 
     private List<CapacityRange> boxCapacity;
 
-    private ToolCosts toolCosts;
-
-    private Integer dailyLoginReward;
+    /** 免费金币单次金额（看广告领取，前端 HomePage.onFreeCoinClick 消费） */
+    private Integer freeCoinReward;
 
     private Integer newUserReward;
 
@@ -25,9 +24,6 @@ public class GameConfigResponse {
 
     /** 每日挑战每层板子数（按关号分组再按批） */
     private java.util.Map<String, WavePlatesLevel> dailyWavePlates;
-
-    /** 每日挑战果篮孔数分布权重 */
-    private DailyBoxCapacity dailyBoxCapacity;
 
     /** 每日挑战果篮刷新颜色权重 */
     private Weights dailyChallengeWeights;
@@ -58,13 +54,6 @@ public class GameConfigResponse {
     }
 
     @Data
-    public static class ToolCosts {
-        private Integer addBasket;
-        private Integer clearTray;
-        private Integer smashPlate;
-    }
-
-    @Data
     public static class WavePlanLevel {
         private List<WavePlanBatch> batches;
     }
@@ -87,14 +76,6 @@ public class GameConfigResponse {
         private Integer shapeFirst;
         /** 长条形大板保底块数（plate_bar，宽扁横条横向5孔；缺省/0=不出现） */
         private Integer stripFirst;
-    }
-
-    @Data
-    public static class DailyBoxCapacity {
-        private Integer w3;
-        private Integer w4;
-        private Integer w5;
-        private Integer w6;
     }
 
     @Data
