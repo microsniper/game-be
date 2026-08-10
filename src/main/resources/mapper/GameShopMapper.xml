@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sniper.game.wordgame.mapper.GameShopMapper">
+
+    <resultMap id="ShopItemMap" type="com.sniper.game.wordgame.dto.ShopItemDto">
+        <result column="id" property="id"/>
+        <result column="category" property="category"/>
+        <result column="price" property="price"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="resource_code" property="resourceCode"
+                typeHandler="com.sniper.game.wordgame.typehandler.ResourceCodeHandler"/>
+        <result column="group_code" property="groupCode"/>
+        <result column="name" property="name"/>
+        <result column="image_url" property="imageUrl"/>
+    </resultMap>
+
+    <!--
+      category=1 道具 JOIN game_resource 取 resource_code/name/url；
+      category=2 收集 JOIN game_collect 取 group_code/name/url；UNION ALL 后按 category+sort_order 排序。
+    -->
+    <select id="findAllEnabled" resultMap="ShopItemMap">
+        select s.id, s.category, s.price, s.sort_order,
+               res.resource_code, '' as group_code, res.name, res.url as image_url
+        from game_shop s
+                 join game_resource res on s.item_id = res.id
+        where s.enabled = 1 and s.category = 1
+        union all
+        select s.id, s.category, s.price, s.sort_order,
+               null, gc.group_code, gc.name, gc.url
+        from game_shop s
+                 join game_collect gc on s.item_id = gc.id
+        where s.enabled = 1 and s.category = 2
+        order by category asc, sort_order asc
+    </select>
+</mapper>
