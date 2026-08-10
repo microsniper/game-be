@@ -11,6 +11,7 @@ import com.sniper.game.wordgame.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 import java.time.LocalDate;
 
@@ -42,7 +43,8 @@ public class FeedbackService {
         record.setUserId(userId);
         record.setGameType(GameTypeEnum.FRUIT_PICKING);
         record.setFeedbackType(feedbackType);
-        record.setContent(content);
+        // HTML 转义后存库：反馈内容以后要在管理后台展示，防止提交 <script> 之类的内容在后台渲染时被执行（XSS）
+        record.setContent(HtmlUtils.htmlEscape(content));
         record.setSource(user != null && user.getSource() != null ? user.getSource() : SourceEnum.WECHAT);
         userFeedbackMapper.insert(record);
         log.info("用户反馈提交: userId={}, feedbackType={}", userId, feedbackType);

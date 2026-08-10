@@ -27,7 +27,7 @@
         where c.mode = #{mode, typeHandler=com.sniper.game.wordgame.typehandler.GameRewardModeEnumTypeHandler}
           and c.stage = #{stage} and c.item_type = 1
         union all
-        select c.item_type, null as resource_code, gc.collect_code, c.amount, gc.url as image_url, c.weight
+        select c.item_type, null as resource_code, gc.collect_code, c.amount, gc.color_url as image_url, c.weight
         from game_reward_config c
                  join game_collect gc on c.item_id = gc.id
         where c.mode = #{mode, typeHandler=com.sniper.game.wordgame.typehandler.GameRewardModeEnumTypeHandler}

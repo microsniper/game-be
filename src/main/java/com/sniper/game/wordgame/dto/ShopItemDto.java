@@ -23,12 +23,18 @@ public class ShopItemDto {
     /** category=1 时的资源编码（数字 code），category=2 时为 null */
     private ResourceCodeTypeEnum resourceCode;
 
-    /** category=2 时的收集品分组（animal/car/house/doll），category=1 时为空串 */
+    /** category=2 时的收集品分组编码（CollectGroupEnum.code），category=1 时为空串 */
     private String groupCode;
+
+    /** category=2 时的收集品分组中文名（CollectGroupEnum.name），category=1 时为空串 */
+    private String groupName;
 
     /** 展示名称（资源表/收集表） */
     private String name;
 
     /** 展示图 OSS 地址 */
     private String imageUrl;
+
+    /** category=2 时的 game_collect.id（前端购买成功后写入本地 CollectStore 用），category=1 时为 null */
+    private Long collectId;
 }

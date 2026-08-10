@@ -16,14 +16,20 @@ public class GameCollect {
     /** 收集品名称 */
     private String name;
 
-    /** OSS CDN 地址（预览图/贴图） */
-    private String url;
-
     /** 收集品编码，唯一（cat/dog/car/doll...） */
     private String collectCode;
 
     /** 分组：animal=动物 car=车辆 house=建筑 doll=公仔 */
     private String groupCode;
+
+    /** 灰色态图 OSS 地址（未点亮/仓库未拥有展示） */
+    private String grayUrl;
+
+    /** 彩色态图 OSS 地址（点亮/已拥有展示） */
+    private String colorUrl;
+
+    /** 新用户默认赠送（全表应只有一行为true） */
+    private Boolean isStarterGift;
 
     private LocalDateTime createTime;
 }

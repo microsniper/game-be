@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS `user_feedback` (
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
     `game_type` TINYINT NOT NULL DEFAULT 1 COMMENT '1-采摘游戏',
     `feedback_type` TINYINT NOT NULL COMMENT '反馈类型 1-游戏反馈(bug/卡顿等) 2-意见反馈(建议)',
-    `content` VARCHAR(500) NOT NULL COMMENT '反馈内容',
+    `content` VARCHAR(3000) NOT NULL COMMENT '反馈内容（HTML转义后存储，前端限200字，转义后最长可达约6倍，字段留足余量）',
     `source` TINYINT NOT NULL DEFAULT 1 COMMENT '来源渠道 1-微信小程序 2-抖音小程序',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

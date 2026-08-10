@@ -23,6 +23,8 @@ import com.sniper.game.wordgame.dto.RewardConfigRequest;
 import com.sniper.game.wordgame.dto.RewardDrawRequest;
 import com.sniper.game.wordgame.dto.RewardItem;
 import com.sniper.game.wordgame.dto.ShopItemDto;
+import com.sniper.game.wordgame.dto.CollectItemDto;
+import com.sniper.game.wordgame.service.CollectService;
 import com.sniper.game.wordgame.service.FeedbackService;
 import com.sniper.game.wordgame.service.RegionService;
 import com.sniper.game.wordgame.service.ResourceService;
@@ -56,6 +58,7 @@ public class GameController {
     private final RewardService rewardService;
     private final ShopService shopService;
     private final FeedbackService feedbackService;
+    private final CollectService collectService;
 
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -188,5 +191,11 @@ public class GameController {
     @PostMapping("/shop/list")
     public Result<List<ShopItemDto>> shopList() {
         return Result.success(shopService.listEnabled());
+    }
+
+    /** 收集品全量目录（只读配置，拥有/当前展示状态由前端本地维护） */
+    @PostMapping("/collect/list")
+    public Result<List<CollectItemDto>> collectList() {
+        return Result.success(collectService.listCatalog());
     }
 }

@@ -5,6 +5,7 @@ import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 
 /**
@@ -17,6 +18,9 @@ public class FeedbackSubmitRequest {
     private FeedbackTypeEnum feedbackType;
 
     @NotBlank(message = "反馈内容不能为空")
-    @Size(max = 500, message = "反馈内容不能超过500字")
+    @Size(max = 200, message = "反馈内容不能超过200字")
+    // 只允许汉字/数字/英文字母/空白/常见中英文标点，不允许表情及其他特殊字符（与前端 FeedbackPage 输入过滤同一套白名单）
+    @Pattern(regexp = "^[\\u4e00-\\u9fa5a-zA-Z0-9\\s,.!?;:'\"()\\[\\]{}\\-_+=@#$%^*~，。！？；：“”‘’（）【】《》「」～、…·]*$",
+            message = "反馈内容包含不支持的字符，仅支持汉字、数字、英文字母及常见标点")
     private String content;
 }
