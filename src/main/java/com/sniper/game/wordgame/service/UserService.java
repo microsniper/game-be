@@ -405,7 +405,10 @@ public class UserService {
         }
 
         UserDailyChallenge existing = userDailyChallengeMapper.findByUserAndDate(userId, gt, today);
-        boolean newRecord;
+        // 更新前先取出「本次挑战开始前」库里已有的最快成绩：通关页展示要用它跟本次对比，
+        // 而不是更新之后再查——那样查到的会是本次自己（更新覆盖了旧记录）
+        Integer previousBest = existing != null ? toValidSeconds(existing.getStartAt(), existing.getClearAt()) : null;
+        boolean refreshed;
         if (existing == null) {
             UserDailyChallenge record = new UserDailyChallenge();
             record.setUserId(userId);
@@ -416,21 +419,25 @@ public class UserService {
             record.setClearAt(clearAtTime);
             record.setSource(user.getSource() != null ? user.getSource() : SourceEnum.WECHAT);
             userDailyChallengeMapper.insert(record);
-            newRecord = currentSeconds != null;
+            refreshed = currentSeconds != null;
             log.info("每日挑战首次通关: userId={}, date={}, regionId={}, seconds={}",
                     userId, today, user.getRegionId(), currentSeconds);
         } else if (trusted) {
             // 更快才刷新，比较在 SQL 内完成
-            newRecord = userDailyChallengeMapper.updateIfFaster(userId, gt, today, startAtTime, clearAtTime) > 0;
+            refreshed = userDailyChallengeMapper.updateIfFaster(userId, gt, today, startAtTime, clearAtTime) > 0;
             log.info("每日挑战重复通关: userId={}, date={}, seconds={}, 刷新最快={}",
-                    userId, today, currentSeconds, newRecord);
+                    userId, today, currentSeconds, refreshed);
         } else {
-            newRecord = false;
+            refreshed = false;
             log.info("每日挑战重复通关但计时不可信，跳过刷新: userId={}, date={}, startAt={}, endAt={}", userId, today, startAt, endAt);
         }
 
-        Integer bestSeconds = userDailyChallengeMapper.findBestSeconds(userId, gt, today);
-        return new DailyClearResponse(currentSeconds, bestSeconds, newRecord);
+        // 通关页展示用的「今日最快」：有历史记录就显示历史记录（不含本次，方便对比）；
+        // 今天头一次挑战没有历史记录可比，才退回显示本次成绩
+        Integer bestSecondsForDisplay = previousBest != null ? previousBest : currentSeconds;
+        // 「新纪录」严格定义为击败了一个已存在的历史记录：首次挑战没有可比对象，不算新纪录
+        boolean newRecord = refreshed && previousBest != null && currentSeconds != null && currentSeconds < previousBest;
+        return new DailyClearResponse(currentSeconds, bestSecondsForDisplay, newRecord);
     }
 
     /**
