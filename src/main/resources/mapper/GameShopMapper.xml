@@ -15,6 +15,7 @@
         <result column="name" property="name"/>
         <result column="image_url" property="imageUrl"/>
         <result column="collect_id" property="collectId"/>
+        <result column="item_desc" property="itemDesc"/>
     </resultMap>
 
     <!--
@@ -24,13 +25,15 @@
     -->
     <select id="findAllEnabled" resultMap="ShopItemMap">
         select s.id, s.category, s.price, s.sort_order,
-               res.resource_code, '' as group_code, res.name, res.url as image_url, null as collect_id
+               res.resource_code, '' as group_code, res.name, res.url as image_url, null as collect_id,
+               s.item_desc
         from game_shop s
                  join game_resource res on s.item_id = res.id
         where s.enabled = 1 and s.category = 1
         union all
         select s.id, s.category, s.price, s.sort_order,
-               null, gc.group_code, gc.name, gc.color_url, gc.id as collect_id
+               null, gc.group_code, gc.name, gc.color_url, gc.id as collect_id,
+               s.item_desc
         from game_shop s
                  join game_collect gc on s.item_id = gc.id
         where s.enabled = 1 and s.category = 2

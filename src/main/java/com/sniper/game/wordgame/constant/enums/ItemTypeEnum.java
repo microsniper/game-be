@@ -8,7 +8,7 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * 物品类型（game_reward_config.item_type / user_backpack.item_type 存 code）
+ * 物品类型（user_backpack.item_type 存 code）
  */
 @Getter
 @AllArgsConstructor

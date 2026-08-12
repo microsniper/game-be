@@ -19,8 +19,8 @@ import com.sniper.game.wordgame.dto.ResourceItem;
 import com.sniper.game.wordgame.dto.ShareConsumeRequest;
 import com.sniper.game.wordgame.dto.ShareConsumeResponse;
 import com.sniper.game.wordgame.dto.SignInRewardItem;
-import com.sniper.game.wordgame.dto.RewardConfigRequest;
-import com.sniper.game.wordgame.dto.RewardDrawRequest;
+import com.sniper.game.wordgame.dto.RewardDailyRequest;
+import com.sniper.game.wordgame.dto.RewardEndlessRequest;
 import com.sniper.game.wordgame.dto.RewardItem;
 import com.sniper.game.wordgame.dto.ShopItemDto;
 import com.sniper.game.wordgame.dto.CollectItemDto;
@@ -175,16 +175,18 @@ public class GameController {
         return Result.success(userService.getResourceList());
     }
 
-    /** 过关奖励配置：阶段 1 固定奖励（通常是金币），按 mode 区分每日挑战/无限模式 */
-    @PostMapping("/reward/config")
-    public Result<RewardItem> rewardConfig(@Valid @RequestBody RewardConfigRequest request) {
-        return Result.success(rewardService.getFixedReward(request.getMode(), 1));
+    /** 每日挑战过关奖励：stage1=金币200 / stage2=道具抽1 / stage3=收集抽1，规则硬编码在 RewardService */
+    @PostMapping("/reward/daily")
+    public Result<List<RewardItem>> rewardDaily(@Valid @RequestBody RewardDailyRequest request) {
+        return Result.success(rewardService.dailyStageReward(
+                request.getStage(), request.getOwnedCollectCodes()));
     }
 
-    /** 过关奖励抽取：阶段 2 按权重无放回抽 count 条（缺省 1）；无副作用，不落用户状态，发放仍由前端处理 */
-    @PostMapping("/reward/draw")
-    public Result<List<RewardItem>> rewardDraw(@Valid @RequestBody RewardDrawRequest request) {
-        return Result.success(rewardService.draw(request.getMode(), request.getStage(), request.getCount()));
+    /** 无限模式过关结算：普通关=[金币]；5 的倍数关=[金币+随机道具/收集抽1] */
+    @PostMapping("/reward/endless")
+    public Result<List<RewardItem>> rewardEndless(@Valid @RequestBody RewardEndlessRequest request) {
+        return Result.success(rewardService.endlessClearReward(
+                request.getLevel(), request.getOwnedCollectCodes()));
     }
 
     /** 商城目录：道具关联资源表、收集关联收集表，价格表内配置；购买发放走前端本地账 */

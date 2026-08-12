@@ -28,5 +28,8 @@ public class GameShop {
     /** 1=上架 0=下架 */
     private Integer enabled;
 
+    /** 商品说明（商城卡片小字，可选，如「可任意匹配果篮」） */
+    private String itemDesc;
+
     private LocalDateTime createTime;
 }

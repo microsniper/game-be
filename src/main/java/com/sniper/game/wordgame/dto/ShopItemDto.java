@@ -37,4 +37,7 @@ public class ShopItemDto {
 
     /** category=2 时的 game_collect.id（前端购买成功后写入本地 CollectStore 用），category=1 时为 null */
     private Long collectId;
+
+    /** 商品说明（商城卡片小字，可选） */
+    private String itemDesc;
 }

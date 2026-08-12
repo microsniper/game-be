@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /**
  * 收集品配置（game_collect，原 game_skin 改造）：小猫/小狗/汽车/公仔等收集品。
- * 拥有是全局的（不按模式分）；掉落归属由 game_reward_config 的 mode 池子表达，商城售卖由 game_shop category=2 表达。
+ * 拥有是全局的（不按模式分）；掉落归属由 RewardService 硬编码抽奖池表达，商城售卖由 game_shop category=2 表达。
  */
 @Data
 public class GameCollect {
