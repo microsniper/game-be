@@ -6,19 +6,37 @@
 
     <resultMap id="SignInRewardItemMap" type="com.sniper.game.wordgame.dto.SignInRewardItem">
         <result column="day_num" property="dayNum"/>
+        <result column="item_type" property="itemType"
+                typeHandler="com.sniper.game.wordgame.typehandler.ItemTypeEnumTypeHandler"/>
         <result column="image_url" property="imageUrl"/>
-        <!-- 奖励类型不再存签到表，经 resource_id 从 game_resource.resource_code 取 -->
         <result column="resource_code" property="rewardType" typeHandler="com.sniper.game.wordgame.typehandler.ResourceCodeHandler"/>
+        <result column="collect_id" property="collectId"/>
+        <result column="collect_code" property="collectCode"/>
+        <result column="name" property="name"/>
         <result column="amount" property="amount"/>
     </resultMap>
 
+    <!--
+      item_type=1 道具(含金币) JOIN game_resource 取 resource_code/url；
+      item_type=2 收集品 JOIN game_collect 取 id/collect_code/name/color_url；
+      UNION ALL 后按 day_num 排序，固定 7 行，不分页。
+    -->
     <select id="findAllWithResource" resultMap="SignInRewardItemMap">
-        select r.day_num,
-               res.url as image_url,
-               res.resource_code,
+        select r.day_num, r.item_type,
+               res.url as image_url, res.resource_code,
+               null as collect_id, null as collect_code, null as name,
                r.amount
         from sign_in_reward r
-                 join game_resource res on r.resource_id = res.id
-        order by r.day_num asc
+                 join game_resource res on r.item_id = res.id
+        where r.item_type = 1
+        union all
+        select r.day_num, r.item_type,
+               gc.color_url as image_url, null as resource_code,
+               gc.id as collect_id, gc.collect_code, gc.name,
+               r.amount
+        from sign_in_reward r
+                 join game_collect gc on r.item_id = gc.id
+        where r.item_type = 2
+        order by day_num asc
     </select>
 </mapper>

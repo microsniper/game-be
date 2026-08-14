@@ -18,25 +18,61 @@
         <result column="item_desc" property="itemDesc"/>
     </resultMap>
 
-    <!--
-      category=1 道具 JOIN game_resource 取 resource_code/name/url；
-      category=2 收集 JOIN game_collect 取 group_code/name/url/id（collect_id 供前端购买后写入本地 CollectStore）；
-      UNION ALL 后按 category+sort_order 排序。
-    -->
-    <select id="findAllEnabled" resultMap="ShopItemMap">
+    <!-- groupName 由 Service 层按 CollectGroupEnum 解析补上，SQL 只出 code -->
+    <resultMap id="GroupCodeMap" type="com.sniper.game.wordgame.dto.StorageGroupDto">
+        <result column="group_code" property="groupCode"/>
+    </resultMap>
+
+    <!-- 道具分页：category=1 JOIN game_resource，按 sort_order 排序 -->
+    <select id="findTools" resultMap="ShopItemMap">
         select s.id, s.category, s.price, s.sort_order,
                res.resource_code, '' as group_code, res.name, res.url as image_url, null as collect_id,
                s.item_desc
         from game_shop s
                  join game_resource res on s.item_id = res.id
         where s.enabled = 1 and s.category = 1
-        union all
+        order by s.sort_order asc, s.id asc
+        limit #{offset}, #{limit}
+    </select>
+
+    <select id="countTools" resultType="int">
+        select count(*)
+        from game_shop s
+        where s.enabled = 1 and s.category = 1
+    </select>
+
+    <!-- 收集分页：category=2 JOIN game_collect，可选按 group_code 筛选，按 sort_order 排序 -->
+    <select id="findCollect" resultMap="ShopItemMap">
         select s.id, s.category, s.price, s.sort_order,
-               null, gc.group_code, gc.name, gc.color_url, gc.id as collect_id,
+               null as resource_code, gc.group_code, gc.name, gc.color_url as image_url, gc.id as collect_id,
                s.item_desc
         from game_shop s
                  join game_collect gc on s.item_id = gc.id
         where s.enabled = 1 and s.category = 2
-        order by category asc, sort_order asc
+        <if test="groupCode != null and groupCode != ''">
+            and gc.group_code = #{groupCode}
+        </if>
+        order by s.sort_order asc, s.id asc
+        limit #{offset}, #{limit}
+    </select>
+
+    <select id="countCollect" resultType="int">
+        select count(*)
+        from game_shop s
+                 join game_collect gc on s.item_id = gc.id
+        where s.enabled = 1 and s.category = 2
+        <if test="groupCode != null and groupCode != ''">
+            and gc.group_code = #{groupCode}
+        </if>
+    </select>
+
+    <!-- 收集品在售的全部分组（tab 栏用，与 group_code 筛选无关），按分组内最小 sort_order 排序 -->
+    <select id="findCollectGroups" resultMap="GroupCodeMap">
+        select gc.group_code as group_code, min(s.sort_order) as min_sort
+        from game_shop s
+                 join game_collect gc on s.item_id = gc.id
+        where s.enabled = 1 and s.category = 2
+        group by gc.group_code
+        order by min_sort asc
     </select>
 </mapper>

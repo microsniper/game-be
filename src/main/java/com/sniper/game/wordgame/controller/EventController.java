@@ -1,5 +1,6 @@
 package com.sniper.game.wordgame.controller;
 
+import com.sniper.game.wordgame.annotation.ApiName;
 import com.sniper.game.wordgame.dto.EventReportRequest;
 import com.sniper.game.wordgame.util.RedisUtils;
 import com.sniper.game.wordgame.vo.Result;
@@ -33,6 +34,7 @@ public class EventController {
     /**
      * 埋点上报（仅计数，通知由定时任务批量发送）
      */
+    @ApiName("埋点上报接口")
     @PostMapping("/report")
     public Result<Void> report(@Valid @RequestBody EventReportRequest request) {
         String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);

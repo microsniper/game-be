@@ -8,7 +8,9 @@ import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
 import com.alibaba.fastjson.TypeReference;
 import com.sniper.game.wordgame.dto.DailyClearResponse;
+import com.sniper.game.wordgame.dto.DailyRankMockConfig;
 import com.sniper.game.wordgame.dto.DailyRankResponse;
+import com.sniper.game.wordgame.dto.EndlessRankMockConfig;
 import com.sniper.game.wordgame.dto.DailyStatusResponse;
 import com.sniper.game.wordgame.dto.GameConfigResponse;
 import com.sniper.game.wordgame.dto.LoginResponse;
@@ -41,9 +43,14 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -257,6 +264,177 @@ public class UserService {
         }
 
         return new RankResponse(myRank, topList);
+    }
+
+    /** endless_rank_mock 配置的 game_config key，只影响 /api/game/rank/config 这一个展示专用接口 */
+    private static final String CONFIG_KEY_ENDLESS_RANK_MOCK = "endless_rank_mock";
+
+    /**
+     * 无限榜（展示专用，虚拟玩家合并版）：把 endless_rank_mock 配置的虚拟玩家与真实 top 榜合并，
+     * 按关数降序 + DENSE_RANK 取前 20。合并池含真实 top 20，故真实玩家关数追上来必然进榜、不会漏。
+     * 配置缺失或解析失败直接回退真实榜 getRankList()，行为等价旧接口。
+     */
+    public RankResponse getRankDisplayList(Long userId, GameTypeEnum gameType) {
+        if (userId == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+        EndlessRankMockConfig mockConfig = loadEndlessRankMockConfig();
+        if (mockConfig == null) {
+            return getRankList(userId, gameType);
+        }
+        GameTypeEnum gt = gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
+
+        // 合并池 = 虚拟玩家 + 真实 top 20
+        List<RankResponse.RankItem> merged = new ArrayList<>(buildVirtualPlayers(mockConfig));
+        List<RankResponse.RankItem> realTop = userProgressMapper.findTopRanks(gt, 20);
+        for (RankResponse.RankItem item : realTop) {
+            if (item.getUserId() != null && item.getUserId().equals(userId)) {
+                item.setIsMe(true);
+            }
+            merged.add(item);
+        }
+        merged.sort((a, b) -> b.getLevelNum() - a.getLevelNum());
+
+        // 前 20 + DENSE_RANK（与真实榜同口径：同关数同名次）
+        List<RankResponse.RankItem> displayList = new ArrayList<>(merged.subList(0, Math.min(20, merged.size())));
+        int rank = 0;
+        int prevLevel = -1;
+        for (RankResponse.RankItem item : displayList) {
+            if (item.getLevelNum() != prevLevel) {
+                rank++;
+                prevLevel = item.getLevelNum();
+            }
+            item.setRank(rank);
+        }
+
+        // myRank：用用户真实关数在合并池里找位置（密集名次 = 比我高的不同关数个数 + 1），与展示榜自洽
+        RankResponse.RankItem myRank = null;
+        UserProgress progress = userProgressMapper.findByUserIdAndGameType(userId, gt);
+        if (progress != null) {
+            int myLevel = progress.getLevelNum();
+            Set<Integer> higherLevels = new HashSet<>();
+            for (RankResponse.RankItem item : merged) {
+                if (item.getLevelNum() > myLevel) {
+                    higherLevels.add(item.getLevelNum());
+                }
+            }
+            User user = userMapper.findById(userId);
+            myRank = new RankResponse.RankItem();
+            myRank.setRank(higherLevels.size() + 1);
+            myRank.setUserId(userId);
+            myRank.setNickname(user != null ? user.getNickname() : null);
+            myRank.setAvatarUrl(user != null ? user.getAvatarUrl() : null);
+            myRank.setLevelNum(myLevel);
+            myRank.setIsMe(true);
+        }
+
+        return new RankResponse(myRank, displayList);
+    }
+
+    /**
+     * 算出每个虚拟玩家的当前关数：startDate 次日起到昨天逐日全额累计（每天仅被种子选中的
+     * dailyActiveCount 人涨关），今天的增长按 hourlyWeights 曲线进度取整，关数当天内逐段上涨。
+     */
+    private List<RankResponse.RankItem> buildVirtualPlayers(EndlessRankMockConfig cfg) {
+        List<EndlessRankMockConfig.MockPlayer> players = cfg.getPlayers();
+        int n = players.size();
+        int[] levels = new int[n];
+        for (int i = 0; i < n; i++) {
+            levels[i] = players.get(i).getInitialLevel() == null ? 0 : players.get(i).getInitialLevel();
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate start = LocalDate.parse(cfg.getStartDate());
+        double todayProgress = computeHourlyProgress(cfg.getHourlyWeights());
+
+        for (LocalDate d = start.plusDays(1); !d.isAfter(today); d = d.plusDays(1)) {
+            boolean isToday = d.equals(today);
+            for (int i : selectActiveIndices(players, d, cfg.getDailyActiveCount())) {
+                int grow = seededDailyGrow(cfg, players.get(i).getNickname(), d);
+                levels[i] += isToday ? (int) (grow * todayProgress) : grow;
+            }
+        }
+
+        List<RankResponse.RankItem> items = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            RankResponse.RankItem item = new RankResponse.RankItem();
+            item.setUserId(-(long) (i + 1)); // 负数区分虚拟玩家，避免与真实 userId 冲突
+            item.setNickname(players.get(i).getNickname());
+            item.setAvatarUrl(players.get(i).getAvatarUrl());
+            item.setLevelNum(levels[i]);
+            item.setIsMe(false);
+            items.add(item);
+        }
+        return items;
+    }
+
+    /** 当天哪些虚拟玩家「上线打关」：按 日期+昵称 哈希排序取前 dailyActiveCount 人，确定性且每天人选不同 */
+    private List<Integer> selectActiveIndices(List<EndlessRankMockConfig.MockPlayer> players, LocalDate day, int activeCount) {
+        int n = players.size();
+        Integer[] indices = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            indices[i] = i;
+        }
+        Arrays.sort(indices, Comparator.comparingLong(i -> seedHash(day + "-" + players.get(i).getNickname())));
+        List<Integer> result = new ArrayList<>();
+        for (int k = 0; k < Math.min(activeCount, n); k++) {
+            result.add(indices[k]);
+        }
+        return result;
+    }
+
+    /** 当日增长关数的确定性取值：同 日期+昵称 恒得同一结果，无需落库 */
+    private int seededDailyGrow(EndlessRankMockConfig cfg, String nickname, LocalDate day) {
+        int min = cfg.getDailyGrowMin();
+        int range = cfg.getDailyGrowMax() - min + 1;
+        return min + (int) (seedHash(day + "-" + nickname + "-grow") % range);
+    }
+
+    private long seedHash(String seedKey) {
+        return Math.abs((long) seedKey.hashCode());
+    }
+
+    /** hourlyWeights 曲线在当前时刻的已累计权重占比（0~1）；曲线总权重非正返回 0 */
+    private double computeHourlyProgress(List<Integer> hourlyWeights) {
+        long totalWeight = 0;
+        for (Integer w : hourlyWeights) {
+            totalWeight += w == null ? 0 : w;
+        }
+        if (totalWeight <= 0) {
+            return 0;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        double elapsedWeight = 0;
+        for (int h = 0; h < now.getHour(); h++) {
+            Integer w = hourlyWeights.get(h);
+            elapsedWeight += w == null ? 0 : w;
+        }
+        Integer currentHourWeight = hourlyWeights.get(now.getHour());
+        elapsedWeight += (currentHourWeight == null ? 0 : currentHourWeight) * (now.getMinute() / 60.0);
+        return elapsedWeight / totalWeight;
+    }
+
+    /** 读取并解析 endless_rank_mock 配置；不存在、格式非法或字段缺失都返回 null，调用方回退真实榜 */
+    private EndlessRankMockConfig loadEndlessRankMockConfig() {
+        try {
+            GameConfig config = gameConfigMapper.findByConfigKey(CONFIG_KEY_ENDLESS_RANK_MOCK);
+            if (config == null || StringUtils.isBlank(config.getConfigValue())) {
+                return null;
+            }
+            EndlessRankMockConfig parsed = JSON.parseObject(config.getConfigValue(), EndlessRankMockConfig.class);
+            if (parsed == null || parsed.getPlayers() == null || parsed.getPlayers().isEmpty()
+                    || parsed.getHourlyWeights() == null || parsed.getHourlyWeights().size() != 24
+                    || parsed.getDailyGrowMin() == null || parsed.getDailyGrowMax() == null
+                    || parsed.getDailyGrowMax() < parsed.getDailyGrowMin()
+                    || parsed.getDailyActiveCount() == null || parsed.getDailyActiveCount() < 0) {
+                return null;
+            }
+            LocalDate.parse(parsed.getStartDate()); // 日期非法会抛异常走 catch 回退
+            return parsed;
+        } catch (Exception e) {
+            log.warn("endless_rank_mock 配置解析失败，回退为纯真实榜", e);
+            return null;
+        }
     }
 
     /**
@@ -493,6 +671,177 @@ public class UserService {
         }
 
         return new DailyRankResponse(myRank, topList);
+    }
+
+    /** daily_rank_mock 配置的 game_config key，只影响 /api/game/daily/rank/config 这一个展示专用接口 */
+    private static final String CONFIG_KEY_DAILY_RANK_MOCK = "daily_rank_mock";
+
+    /**
+     * 每日挑战省份榜（展示专用，虚拟基数叠加版）：给 list、myRank 每一项的通关人数都叠加
+     * daily_rank_mock 配置算出的虚拟基数，仅用于首页/排行榜页的列表展示，不影响真实数据接口
+     * getDailyRankList()。配置缺失、解析失败或未覆盖到的省份，虚拟基数按 0 处理，等价于纯真实数据。
+     */
+    public DailyRankResponse getDailyRankDisplayList(Long userId, GameTypeEnum gameType) {
+        if (userId == null) {
+            throw BusinessException.unauthorized("请先登录");
+        }
+        GameTypeEnum gt = gameType != null ? gameType : GameTypeEnum.FRUIT_PICKING;
+        LocalDate today = LocalDate.now();
+
+        Map<Integer, String> regionNames = new HashMap<>();
+        for (RegionService.RegionItem item : regionService.listRegions()) {
+            regionNames.put(item.getId(), item.getName());
+        }
+        Map<String, Integer> regionIdsByName = new HashMap<>();
+        for (Map.Entry<Integer, String> e : regionNames.entrySet()) {
+            regionIdsByName.put(e.getValue(), e.getKey());
+        }
+
+        DailyRankMockConfig mockConfig = loadDailyRankMockConfig();
+        Map<String, DailyRankMockConfig.RegionMock> mockByName = new HashMap<>();
+        List<Integer> hourlyWeights = null;
+        if (mockConfig != null && mockConfig.getRegions() != null) {
+            hourlyWeights = mockConfig.getHourlyWeights();
+            for (DailyRankMockConfig.RegionMock rm : mockConfig.getRegions()) {
+                if (rm.getRegionName() != null) {
+                    mockByName.put(rm.getRegionName(), rm);
+                }
+            }
+        }
+
+        // 真实统计：regionId -> 真实通关人数
+        List<DailyRankResponse.RankItem> realList = userDailyChallengeMapper.countByRegionGroup(gt, today);
+        Map<Integer, Integer> realCountByRegionId = new HashMap<>();
+        for (DailyRankResponse.RankItem item : realList) {
+            realCountByRegionId.put(item.getRegionId(), item.getClearCount());
+        }
+
+        // 合并展示集合：真实有通关记录的省份 + 配置覆盖到的省份（哪怕当天真实通关数为 0）
+        Map<Integer, Integer> displayCountByRegionId = new HashMap<>(realCountByRegionId);
+        for (String regionName : mockByName.keySet()) {
+            Integer regionId = regionIdsByName.get(regionName);
+            if (regionId != null && !displayCountByRegionId.containsKey(regionId)) {
+                displayCountByRegionId.put(regionId, 0);
+            }
+        }
+
+        List<DailyRankResponse.RankItem> displayList = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> e : displayCountByRegionId.entrySet()) {
+            Integer regionId = e.getKey();
+            String regionName = regionNames.get(regionId);
+            int virtualBaseline = 0;
+            if (hourlyWeights != null && regionName != null) {
+                DailyRankMockConfig.RegionMock rm = mockByName.get(regionName);
+                if (rm != null) {
+                    virtualBaseline = computeVirtualBaseline(regionName, rm, hourlyWeights, today);
+                }
+            }
+            DailyRankResponse.RankItem item = new DailyRankResponse.RankItem();
+            item.setRegionId(regionId);
+            item.setRegionName(regionName);
+            item.setClearCount(e.getValue() + virtualBaseline);
+            item.setIsMe(false);
+            displayList.add(item);
+        }
+        displayList.sort((a, b) -> b.getClearCount() - a.getClearCount());
+
+        int rank = 0;
+        int prevCount = -1;
+        for (DailyRankResponse.RankItem item : displayList) {
+            if (!item.getClearCount().equals(prevCount)) {
+                rank++;
+                prevCount = item.getClearCount();
+            }
+            item.setRank(rank);
+        }
+
+        DailyRankResponse.RankItem myRank = null;
+        User me = userMapper.findById(userId);
+        if (me != null && me.getRegionId() != null) {
+            for (DailyRankResponse.RankItem item : displayList) {
+                if (item.getRegionId().equals(me.getRegionId())) {
+                    item.setIsMe(true);
+                    myRank = item;
+                    break;
+                }
+            }
+            if (myRank == null) {
+                String regionName = regionNames.get(me.getRegionId());
+                int virtualBaseline = 0;
+                if (hourlyWeights != null && regionName != null) {
+                    DailyRankMockConfig.RegionMock rm = mockByName.get(regionName);
+                    if (rm != null) {
+                        virtualBaseline = computeVirtualBaseline(regionName, rm, hourlyWeights, today);
+                    }
+                }
+                myRank = new DailyRankResponse.RankItem();
+                myRank.setRank(rank + 1);
+                myRank.setRegionId(me.getRegionId());
+                myRank.setRegionName(regionName);
+                myRank.setClearCount(virtualBaseline);
+                myRank.setIsMe(true);
+            }
+        }
+
+        return new DailyRankResponse(myRank, displayList);
+    }
+
+    /** 读取并解析 daily_rank_mock 配置；不存在、格式非法或字段缺失都返回 null，调用方按“无配置”兜底为纯真实数据 */
+    private DailyRankMockConfig loadDailyRankMockConfig() {
+        try {
+            GameConfig config = gameConfigMapper.findByConfigKey(CONFIG_KEY_DAILY_RANK_MOCK);
+            if (config == null || StringUtils.isBlank(config.getConfigValue())) {
+                return null;
+            }
+            DailyRankMockConfig parsed = JSON.parseObject(config.getConfigValue(), DailyRankMockConfig.class);
+            if (parsed == null || parsed.getHourlyWeights() == null || parsed.getHourlyWeights().size() != 24
+                    || parsed.getRegions() == null || parsed.getRegions().isEmpty()) {
+                return null;
+            }
+            return parsed;
+        } catch (Exception e) {
+            log.warn("daily_rank_mock 配置解析失败，回退为纯真实数据", e);
+            return null;
+        }
+    }
+
+    /**
+     * 按“日期+省份名”取确定性种子，在 [baselineMin, baselineMax] 区间内算出当日目标值，
+     * 再结合 hourlyWeights 曲线折算出当前时刻应该涨到的虚拟基数（0 点起步，当天内单调递增，次日重新取种子）。
+     */
+    private int computeVirtualBaseline(String regionName, DailyRankMockConfig.RegionMock rm,
+                                        List<Integer> hourlyWeights, LocalDate today) {
+        Integer min = rm.getBaselineMin();
+        Integer max = rm.getBaselineMax();
+        if (min == null || max == null || max <= min) {
+            return 0;
+        }
+        String seedKey = today + "-" + regionName;
+        long hash = Math.abs((long) seedKey.hashCode());
+        int todayTarget = min + (int) (hash % (max - min));
+
+        LocalDateTime now = LocalDateTime.now();
+        int hour = now.getHour();
+        double minuteFrac = now.getMinute() / 60.0;
+
+        long totalWeight = 0;
+        for (Integer w : hourlyWeights) {
+            totalWeight += w == null ? 0 : w;
+        }
+        if (totalWeight <= 0) {
+            return 0;
+        }
+
+        double elapsedWeight = 0;
+        for (int h = 0; h < hour; h++) {
+            Integer w = hourlyWeights.get(h);
+            elapsedWeight += w == null ? 0 : w;
+        }
+        Integer currentHourWeight = hourlyWeights.get(hour);
+        elapsedWeight += (currentHourWeight == null ? 0 : currentHourWeight) * minuteFrac;
+
+        double progress = elapsedWeight / totalWeight;
+        return (int) Math.round(todayTarget * progress);
     }
 
     public void updateProfile(Long userId, String nickname, String avatarUrl) {

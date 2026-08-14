@@ -18,4 +18,40 @@
         select id, collect_code, group_code, name, gray_url, color_url, is_starter_gift
         from game_collect
     </select>
+
+    <select id="findRandomFruits" resultMap="CollectItemMap">
+        select id, collect_code, group_code, name, gray_url, color_url, is_starter_gift
+        from game_collect
+        where group_code = 'fruit'
+        order by rand()
+        limit #{limit}
+    </select>
+
+    <!-- 按 id 批量取目录，单表 in，不连表 -->
+    <select id="findByIds" resultMap="CollectItemMap">
+        select id, collect_code, group_code, name, gray_url, color_url, is_starter_gift
+        from game_collect
+        where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 新用户默认赠送的那一条，LIMIT 1 兜底防配置多条 -->
+    <select id="findStarterGift" resultMap="CollectItemMap">
+        select id, collect_code, group_code, name, gray_url, color_url, is_starter_gift
+        from game_collect
+        where is_starter_gift = 1
+        limit 1
+    </select>
+
+    <!-- 按 collect_code 批量取目录（奖励结果反查名称/id 用），单表 in，不连表 -->
+    <select id="findByCodes" resultMap="CollectItemMap">
+        select id, collect_code, group_code, name, gray_url, color_url, is_starter_gift
+        from game_collect
+        where collect_code in
+        <foreach collection="codes" item="code" open="(" separator="," close=")">
+            #{code}
+        </foreach>
+    </select>
 </mapper>

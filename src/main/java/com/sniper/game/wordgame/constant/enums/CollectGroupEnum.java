@@ -8,16 +8,16 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * 收集品分组（game_collect.group_code 存 code 字符串）。
- * 伙伴=陪玩角色（猫/玩偶等拟人小伙伴）；后续豪车/房子等分组按需追加。
+ * 水果=游戏区陪玩角色（原「伙伴」分组改名，猫/玩偶等拟人小伙伴）；后续豪车/房子等分组按需追加。
  */
 @Getter
 @AllArgsConstructor
 public enum CollectGroupEnum {
 
     /**
-     * 伙伴：游戏区陪玩角色（拟人猫/兜帽玩偶等）
+     * 水果：游戏区陪玩角色（拟人猫/兜帽玩偶等）
      */
-    PARTNER("partner", "伙伴"),
+    FRUIT("fruit", "水果"),
     ;
 
     private final String code;

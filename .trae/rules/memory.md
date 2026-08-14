@@ -64,6 +64,9 @@ docker compose up -d game-test --force-recreate
 docker build -t game-prod:latest . 
 docker compose up -d game-prod --force-recreate
 ```
+## 解析base64图片的
+jq -r '.data[0].b64_json' response.json | base64 -d > picture.png
+
 
 ## 密码
 redis密码 Zp0303171
