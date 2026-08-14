@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sniper.game.wordgame.mapper.UserBackpackMapper">
+
+    <resultMap id="UserBackpackResultMap" type="com.sniper.game.wordgame.entity.UserBackpack">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="collect_id" property="collectId"/>
+        <result column="count" property="count"/>
+        <result column="is_current" property="isCurrent"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="BackpackItemMap" type="com.sniper.game.wordgame.dto.BackpackItemDto">
+        <result column="collect_id" property="collectId"/>
+        <result column="count" property="count"/>
+        <result column="is_current" property="isCurrent"/>
+    </resultMap>
+
+    <select id="findByUserId" resultMap="BackpackItemMap">
+        select collect_id, count, is_current
+        from user_backpack
+        where user_id = #{userId}
+    </select>
+
+    <select id="findByUserIdAndCollectId" resultMap="UserBackpackResultMap">
+        select id, user_id, collect_id, count, is_current, created_at, updated_at
+        from user_backpack
+        where user_id = #{userId}
+          and collect_id = #{collectId}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="com.sniper.game.wordgame.entity.UserBackpack"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into user_backpack (
+            user_id, collect_id, count, is_current, created_at, updated_at
+        ) values (
+            #{userId}, #{collectId}, #{count}, #{isCurrent}, now(), now()
+        )
+    </insert>
+
+    <update id="incrementCount">
+        update user_backpack
+        set count = count + #{amount},
+            updated_at = now()
+        where user_id = #{userId}
+          and collect_id = #{collectId}
+    </update>
+
+    <update id="clearCurrent">
+        update user_backpack
+        set is_current = 0,
+            updated_at = now()
+        where user_id = #{userId}
+          and is_current = 1
+    </update>
+
+    <update id="setCurrent">
+        update user_backpack
+        set is_current = 1,
+            updated_at = now()
+        where user_id = #{userId}
+          and collect_id = #{collectId}
+    </update>
+</mapper>
