@@ -216,6 +216,17 @@ public class GameController {
         return Result.success(resourceService.getSignInRewards());
     }
 
+    /**
+     * 签到成功上报：仅用于统计每日签到人数，前端本地判定签到成功（今天首次签到）后调用一次即可。
+     * 不返回业务数据，签到状态/奖励发放仍全在前端本地处理，本接口不影响任何现有签到逻辑。
+     */
+    @ApiName("签到上报接口")
+    @PostMapping("/signin/report")
+    public Result<Void> signInReport() {
+        userService.reportSignIn(UserContext.getCurrentUserId());
+        return Result.success(null);
+    }
+
     /** 资源查询：所有登记了类型编码的资源明细（前端按 resourceCode 组 Map，value=整条数据） */
     @ApiName("资源查询接口")
     @PostMapping("/resources")

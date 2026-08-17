@@ -37,9 +37,11 @@ public class FeishuNotifyService {
      * @param dailyTotal  今日观看广告累计
      * @param sceneDetail 各场景明细
      * @param skipTotal   广告中途关闭/跳过总次数
+     * @param dau         今日日活（独立登录用户数）
+     * @param signInCount 今日签到人数（独立签到用户数）
      */
     @Async
-    public void sendSummaryNotify(String envLabel, String now, long delta, long dailyTotal, String sceneDetail, long skipTotal) {
+    public void sendSummaryNotify(String envLabel, String now, long delta, long dailyTotal, String sceneDetail, long skipTotal, long dau, long signInCount) {
         if (webhookUrl == null || webhookUrl.isEmpty()) {
             log.debug("飞书 Webhook URL 未配置，跳过通知");
             return;
@@ -47,8 +49,8 @@ public class FeishuNotifyService {
 
         try {
             String content = String.format(
-                "时间：%s\n近10分钟看完广告新增：%d 次\n今日观看广告累计：%d 次\n%s\n广告中途关闭/跳过：%d 次",
-                now, delta, dailyTotal, sceneDetail, skipTotal
+                "时间：%s\n近10分钟看完广告新增：%d 次\n今日观看广告累计：%d 次\n%s\n广告中途关闭/跳过：%d 次\n\n\n日活：%d 人\n签到人数：%d 人",
+                now, delta, dailyTotal, sceneDetail, skipTotal, dau, signInCount
             );
 
             JSONObject body = new JSONObject();

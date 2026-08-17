@@ -133,6 +133,15 @@ public class UserService {
         String token = UUID.randomUUID().toString().replace("-", "");
         redisUtils.set(buildTokenKey(token), user.getId(), CommonConstants.TOKEN_EXPIRE_DAYS, TimeUnit.DAYS);
 
+        // 日活统计：SADD 去重，首次加入（返回1）才设置 TTL 到当天结束，避免重复登录反复刷新过期时间
+        String dauKey = RedisKeyConstants.buildDauKey(LocalDate.now().toString());
+        Long dauAdded = redisUtils.sAdd(dauKey, user.getId());
+        if (dauAdded != null && dauAdded == 1) {
+            long secondsTillMidnight = java.time.Duration.between(java.time.LocalDateTime.now(),
+                    LocalDate.now().plusDays(1).atStartOfDay()).getSeconds();
+            redisUtils.expire(dauKey, Math.max(1, secondsTillMidnight), TimeUnit.SECONDS);
+        }
+
         boolean hasProfile = org.apache.commons.lang3.StringUtils.isNotBlank(user.getNickname()) && org.apache.commons.lang3.StringUtils.isNotBlank(user.getAvatarUrl());
 
         LoginResponse response = new LoginResponse();
@@ -523,6 +532,21 @@ public class UserService {
             redisUtils.expire(key, Math.max(1, secondsTillMidnight), java.util.concurrent.TimeUnit.SECONDS);
         }
         return count != null ? count.intValue() : 0;
+    }
+
+    /**
+     * 签到成功上报：仅用于统计每日签到人数（Redis Set 去重，SADD 幂等，同一用户多次上报不会重复计数），
+     * 不做防重复签到的业务校验——签到状态/奖励发放仍全在前端本地，本方法只负责让后端知道"今天有多少不同用户签到过"。
+     */
+    public void reportSignIn(Long userId) {
+        if (userId == null) return;
+        String signInKey = RedisKeyConstants.buildSignInKey(LocalDate.now().toString());
+        Long added = redisUtils.sAdd(signInKey, userId);
+        if (added != null && added == 1) {
+            long secondsTillMidnight = java.time.Duration.between(java.time.LocalDateTime.now(),
+                    LocalDate.now().plusDays(1).atStartOfDay()).getSeconds();
+            redisUtils.expire(signInKey, Math.max(1, secondsTillMidnight), java.util.concurrent.TimeUnit.SECONDS);
+        }
     }
 
     /**

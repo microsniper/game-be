@@ -94,4 +94,26 @@ public class RedisUtils {
     public Long increment(String key, long delta) {
         return redisTemplate.opsForValue().increment(key, delta);
     }
+
+    /**
+     * 向 Set 添加元素（去重计数场景用，如按天统计独立用户数）
+     *
+     * @param key   键
+     * @param value 值
+     * @return 实际新增的元素个数（0 表示该值已存在，未产生变化）
+     */
+    public Long sAdd(String key, Object value) {
+        return redisTemplate.opsForSet().add(key, value);
+    }
+
+    /**
+     * 获取 Set 元素个数
+     *
+     * @param key 键
+     * @return 元素个数，key 不存在返回 0
+     */
+    public Long sCard(String key) {
+        Long size = redisTemplate.opsForSet().size(key);
+        return size != null ? size : 0L;
+    }
 }

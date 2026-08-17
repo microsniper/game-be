@@ -1,5 +1,6 @@
 package com.sniper.game.wordgame.service;
 
+import com.sniper.game.wordgame.constant.RedisKeyConstants;
 import com.sniper.game.wordgame.entity.GameConfig;
 import com.sniper.game.wordgame.mapper.GameConfigMapper;
 import com.sniper.game.wordgame.util.RedisUtils;
@@ -48,7 +49,9 @@ public class EventReportScheduler {
         SCENE_NAMES.put("revive", "复活");
         SCENE_NAMES.put("clear_tray", "清空果盘");
         SCENE_NAMES.put("unlock_basket", "解锁果篮");
-        SCENE_NAMES.put("smash_plate", "砸板子");
+        SCENE_NAMES.put("add_tray", "加果盘");
+        SCENE_NAMES.put("get_special_fruit", "获取特殊果");
+        SCENE_NAMES.put("free_coin", "免费金币");
     }
 
     /**
@@ -121,11 +124,16 @@ public class EventReportScheduler {
             skipTotal += skipObj == null ? 0 : Long.parseLong(skipObj.toString());
         }
 
+        // 今日日活（独立登录用户数，Redis Set 去重，SCARD 直接取当前个数）
+        long dau = redisUtils.sCard(RedisKeyConstants.buildDauKey(today));
+        // 今日签到人数（独立签到用户数，同样是 Redis Set 去重）
+        long signInCount = redisUtils.sCard(RedisKeyConstants.buildSignInKey(today));
+
         // 当前时间
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm:ss"));
 
         // 发送汇总通知
-        feishuNotifyService.sendSummaryNotify(envLabel, now, delta, currentTotal, sceneDetail.toString().trim(), skipTotal);
+        feishuNotifyService.sendSummaryNotify(envLabel, now, delta, currentTotal, sceneDetail.toString().trim(), skipTotal, dau, signInCount);
 
         // 更新上次上报计数
         redisUtils.set(lastReportKey, currentTotal, 36, TimeUnit.HOURS);
