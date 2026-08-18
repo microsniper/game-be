@@ -550,6 +550,21 @@ public class UserService {
     }
 
     /**
+     * 每日挑战入口人数统计：进入每日挑战对局时调用（由 daily-help/status 接口在 mode=dailyChallenge 时触发）。
+     * Redis Set 去重，SADD 幂等，同一用户一天多次进入只计一次。
+     */
+    public void reportDailyChallengeEnter(Long userId) {
+        if (userId == null) return;
+        String dailyChallengeKey = RedisKeyConstants.buildDailyChallengeKey(LocalDate.now().toString());
+        Long added = redisUtils.sAdd(dailyChallengeKey, userId);
+        if (added != null && added == 1) {
+            long secondsTillMidnight = java.time.Duration.between(java.time.LocalDateTime.now(),
+                    LocalDate.now().plusDays(1).atStartOfDay()).getSeconds();
+            redisUtils.expire(dailyChallengeKey, Math.max(1, secondsTillMidnight), java.util.concurrent.TimeUnit.SECONDS);
+        }
+    }
+
+    /**
      * 资源表查询：所有登记了类型编码的资源明细列表。
      * 前端按 resourceCode 组 Map（value=整条数据），以后新增资源只插表不动代码。
      */
@@ -897,6 +912,11 @@ public class UserService {
         userMapper.updateProfile(userId, normalizedNickname, normalizedAvatarUrl);
     }
 
+    /**
+     * 【死代码，未接线】唯一调用方 GameController.consumeShareCount 已确认前端无入口触发（见该方法注释）。
+     * 下面硬编码的 5 次上限与实际生效的数据库配置 game_config.help_max（当前为 4 次）不是同一套机制，
+     * 不要以为这里的数字是真实上限。
+     */
     public ShareConsumeResponse consumeShareCount(Long userId, GameTypeEnum gameType) {
         if (userId == null) {
             throw BusinessException.unauthorized("请先登录");

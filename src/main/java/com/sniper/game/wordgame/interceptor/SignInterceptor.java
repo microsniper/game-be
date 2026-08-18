@@ -69,7 +69,16 @@ public class SignInterceptor implements HandlerInterceptor {
         String serverSign = DigestUtils.md5DigestAsHex(strToSign.getBytes(StandardCharsets.UTF_8));
 
         if (!serverSign.equalsIgnoreCase(sign)) {
-            log.warn("签名校验失败. uri={}, clientSign={}, serverSign={}, body={}", request.getRequestURI(), sign, serverSign, body);
+            // 兼容存量前端包：无 data 的 POST 前端一律按空串签名，但部分微信环境（机型/基础库差异）
+            // 实际发送的是 "{}"。故 body 为 "{}" 时追加按空串复算一次，任一匹配即放行。
+            if ("{}".equals(body)) {
+                String altSign = DigestUtils.md5DigestAsHex((timestampStr + SECRET_KEY).getBytes(StandardCharsets.UTF_8));
+                if (altSign.equalsIgnoreCase(sign)) {
+                    return true;
+                }
+            }
+            log.warn("签名校验失败. uri={}, clientSign={}, serverSign={}, body={}, ua={}",
+                    request.getRequestURI(), sign, serverSign, body, request.getHeader("User-Agent"));
             writeError(response, "签名校验失败，数据可能被篡改");
             return false;
         }

@@ -43,4 +43,14 @@ public class RedisKeyConstants {
     public static String buildSignInKey(String date) {
         return "game:sign_in:" + date;
     }
+
+    /**
+     * 每日挑战入口人数统计 key（Redis Set，进入每日挑战对局时 SADD userId 去重，SCARD 取当天独立挑战人数）。
+     * date 传 yyyy-MM-dd，次日自动过期，不用额外清理任务。
+     * 埋点挂在求助状态接口上：前端 LoadingPage 进每日挑战必调 daily-help/status(mode=dailyChallenge)，
+     * 复用这个请求顺带 SADD，避免前端单独发一次埋点请求、也避免新增发版。
+     */
+    public static String buildDailyChallengeKey(String date) {
+        return "game:daily_challenge:" + date;
+    }
 }

@@ -148,6 +148,10 @@ public class GameController {
     public Result<DailyHelpResponse> dailyHelpStatus(@RequestBody ProgressRequest request) {
         Long userId = UserContext.getCurrentUserId();
         String mode = com.sniper.game.wordgame.service.UserService.normalizeHelpMode(request.getMode());
+        // 每日挑战入口人数埋点：复用求助状态请求顺带 SADD，避免前端单独发埋点请求
+        if ("dailyChallenge".equals(mode)) {
+            userService.reportDailyChallengeEnter(userId);
+        }
         return Result.success(new DailyHelpResponse(
                 userService.getDailyHelpUsed(userId, mode), userService.getHelpMax(mode)));
     }
@@ -170,6 +174,11 @@ public class GameController {
         return Result.success();
     }
 
+    /**
+     * 【死代码，未接线】前端已确认无任何调用方（consumeShareCount 在 api.ts/GameManager.ts 里的
+     * 使用方全是废弃流程 doShareForReward，未被任何入口触发）。真正生效的求助次数限制走
+     * /api/game/daily-help/*（数据库 game_config.help_max 配置驱动），不是本接口硬编码的 5 次。
+     */
     @ApiName("分享次数核销接口")
     @PostMapping("/share/consume")
     public Result<ShareConsumeResponse> consumeShareCount(@RequestBody ShareConsumeRequest request) {
