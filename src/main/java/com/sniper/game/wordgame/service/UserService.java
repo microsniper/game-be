@@ -7,6 +7,7 @@ import com.sniper.game.wordgame.constant.RedisKeyConstants;
 import com.sniper.game.wordgame.constant.enums.GameTypeEnum;
 import com.sniper.game.wordgame.constant.enums.SourceEnum;
 import com.alibaba.fastjson.TypeReference;
+import com.sniper.game.wordgame.dto.BubbleTipConfig;
 import com.sniper.game.wordgame.dto.DailyClearResponse;
 import com.sniper.game.wordgame.dto.DailyRankMockConfig;
 import com.sniper.game.wordgame.dto.DailyRankResponse;
@@ -223,6 +224,12 @@ public class UserService {
                     break;
                 case "endless_layer_rules":
                     response.setEndlessLayerRules(JSON.parseObject(value, new TypeReference<List<GameConfigResponse.EndlessLayerRuleRange>>() {}));
+                    break;
+                case "endless_challenge_wave_plan":
+                    response.setEndlessChallengeWavePlan(JSON.parseObject(value, new TypeReference<List<GameConfigResponse.EndlessChallengeWavePlanRange>>() {}));
+                    break;
+                case "endless_challenge_wave_plates":
+                    response.setEndlessChallengeWavePlates(JSON.parseObject(value, new TypeReference<List<GameConfigResponse.EndlessChallengeWavePlatesRange>>() {}));
                     break;
                 case "help_max":
                     response.setHelpMax(JSON.parseObject(value, GameConfigResponse.HelpMax.class));
@@ -565,6 +572,21 @@ public class UserService {
     }
 
     /**
+     * 无限模式入口人数统计：进入无限模式对局时调用（由 daily-help/status 接口在 mode=endlessChallenge 时触发）。
+     * Redis Set 去重，SADD 幂等，同一用户一天多次进入只计一次。
+     */
+    public void reportEndlessChallengeEnter(Long userId) {
+        if (userId == null) return;
+        String endlessChallengeKey = RedisKeyConstants.buildEndlessChallengeKey(LocalDate.now().toString());
+        Long added = redisUtils.sAdd(endlessChallengeKey, userId);
+        if (added != null && added == 1) {
+            long secondsTillMidnight = java.time.Duration.between(java.time.LocalDateTime.now(),
+                    LocalDate.now().plusDays(1).atStartOfDay()).getSeconds();
+            redisUtils.expire(endlessChallengeKey, Math.max(1, secondsTillMidnight), java.util.concurrent.TimeUnit.SECONDS);
+        }
+    }
+
+    /**
      * 资源表查询：所有登记了类型编码的资源明细列表。
      * 前端按 resourceCode 组 Map（value=整条数据），以后新增资源只插表不动代码。
      */
@@ -842,6 +864,71 @@ public class UserService {
             log.warn("daily_rank_mock 配置解析失败，回退为纯真实数据", e);
             return null;
         }
+    }
+
+    /** 猫咪气泡提示配置的 game_config key */
+    private static final String CONFIG_KEY_BUBBLE_TIPS = "bubble_tips";
+
+    /** 气泡节奏兜底值：配置缺字段时用这套，前端不必再写一遍默认值 */
+    private static final int BUBBLE_DEFAULT_FIRST_DELAY = 15;
+    private static final int BUBBLE_DEFAULT_MIN_INTERVAL = 20;
+    private static final int BUBBLE_DEFAULT_MAX_INTERVAL = 40;
+    private static final int BUBBLE_DEFAULT_DISPLAY = 4;
+
+    /**
+     * 游戏区猫咪气泡文案（纯配置读取，无副作用）：滤掉 enabled=false 的项、补齐节奏参数默认值后下发。
+     * 文案后台写死，这里不做任何统计计算或占位符替换。
+     * 随机池与情景提示（带 scene 的项）共用同一个 tips 数组，后端原样下发，由前端按 scene 分流。
+     * 配置缺失/解析失败/文案池为空都返回 null，前端据此静默跳过气泡功能，不影响游戏。
+     */
+    public BubbleTipConfig getBubbleTips() {
+        BubbleTipConfig parsed;
+        try {
+            GameConfig config = gameConfigMapper.findByConfigKey(CONFIG_KEY_BUBBLE_TIPS);
+            if (config == null || StringUtils.isBlank(config.getConfigValue())) {
+                return null;
+            }
+            parsed = JSON.parseObject(config.getConfigValue(), BubbleTipConfig.class);
+        } catch (Exception e) {
+            log.warn("bubble_tips 配置解析失败，本次不下发气泡文案", e);
+            return null;
+        }
+        if (parsed == null || parsed.getTips() == null || parsed.getTips().isEmpty()) {
+            return null;
+        }
+
+        List<BubbleTipConfig.Tip> enabled = new ArrayList<>();
+        for (BubbleTipConfig.Tip tip : parsed.getTips()) {
+            if (tip == null || StringUtils.isBlank(tip.getContent())) {
+                continue;
+            }
+            if (Boolean.FALSE.equals(tip.getEnabled())) {
+                continue;
+            }
+            if (tip.getWeight() == null || tip.getWeight() <= 0) {
+                tip.setWeight(1);
+            }
+            enabled.add(tip);
+        }
+        if (enabled.isEmpty()) {
+            return null;
+        }
+        parsed.setTips(enabled);
+
+        if (parsed.getFirstDelaySeconds() == null || parsed.getFirstDelaySeconds() < 0) {
+            parsed.setFirstDelaySeconds(BUBBLE_DEFAULT_FIRST_DELAY);
+        }
+        if (parsed.getMinIntervalSeconds() == null || parsed.getMinIntervalSeconds() <= 0) {
+            parsed.setMinIntervalSeconds(BUBBLE_DEFAULT_MIN_INTERVAL);
+        }
+        if (parsed.getMaxIntervalSeconds() == null
+                || parsed.getMaxIntervalSeconds() < parsed.getMinIntervalSeconds()) {
+            parsed.setMaxIntervalSeconds(Math.max(parsed.getMinIntervalSeconds(), BUBBLE_DEFAULT_MAX_INTERVAL));
+        }
+        if (parsed.getDisplaySeconds() == null || parsed.getDisplaySeconds() <= 0) {
+            parsed.setDisplaySeconds(BUBBLE_DEFAULT_DISPLAY);
+        }
+        return parsed;
     }
 
     /**

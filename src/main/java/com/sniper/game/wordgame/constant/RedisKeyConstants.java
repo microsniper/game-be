@@ -53,4 +53,14 @@ public class RedisKeyConstants {
     public static String buildDailyChallengeKey(String date) {
         return "game:daily_challenge:" + date;
     }
+
+    /**
+     * 无限模式入口人数统计 key（Redis Set，进入无限模式对局时 SADD userId 去重，SCARD 取当天独立进入人数）。
+     * date 传 yyyy-MM-dd，次日自动过期，不用额外清理任务。
+     * 埋点挂在求助状态接口上：前端 LoadingPage 进无限模式必调 daily-help/status(mode=endlessChallenge)，
+     * 复用这个请求顺带 SADD，与每日挑战入口统计口径一致。
+     */
+    public static String buildEndlessChallengeKey(String date) {
+        return "game:endless_challenge:" + date;
+    }
 }

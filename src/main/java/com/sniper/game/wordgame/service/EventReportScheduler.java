@@ -130,12 +130,14 @@ public class EventReportScheduler {
         long signInCount = redisUtils.sCard(RedisKeyConstants.buildSignInKey(today));
         // 每日挑战入口人数（独立挑战用户数，daily-help/status 接口 mode=dailyChallenge 时 SADD 去重）
         long dailyChallengeCount = redisUtils.sCard(RedisKeyConstants.buildDailyChallengeKey(today));
+        // 无限模式入口人数（独立进入用户数，daily-help/status 接口 mode=endlessChallenge 时 SADD 去重）
+        long endlessChallengeCount = redisUtils.sCard(RedisKeyConstants.buildEndlessChallengeKey(today));
 
         // 当前时间
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm:ss"));
 
         // 发送汇总通知
-        feishuNotifyService.sendSummaryNotify(envLabel, now, delta, currentTotal, sceneDetail.toString().trim(), skipTotal, dau, signInCount, dailyChallengeCount);
+        feishuNotifyService.sendSummaryNotify(envLabel, now, delta, currentTotal, sceneDetail.toString().trim(), skipTotal, dau, signInCount, dailyChallengeCount, endlessChallengeCount);
 
         // 更新上次上报计数
         redisUtils.set(lastReportKey, currentTotal, 36, TimeUnit.HOURS);

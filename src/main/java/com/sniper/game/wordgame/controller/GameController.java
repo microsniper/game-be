@@ -1,6 +1,7 @@
 package com.sniper.game.wordgame.controller;
 
 import com.sniper.game.wordgame.annotation.ApiName;
+import com.sniper.game.wordgame.dto.BubbleTipConfig;
 import com.sniper.game.wordgame.dto.DailyClearRequest;
 import com.sniper.game.wordgame.dto.FeedbackSubmitRequest;
 import com.sniper.game.wordgame.dto.DailyClearResponse;
@@ -148,9 +149,11 @@ public class GameController {
     public Result<DailyHelpResponse> dailyHelpStatus(@RequestBody ProgressRequest request) {
         Long userId = UserContext.getCurrentUserId();
         String mode = com.sniper.game.wordgame.service.UserService.normalizeHelpMode(request.getMode());
-        // 每日挑战入口人数埋点：复用求助状态请求顺带 SADD，避免前端单独发埋点请求
+        // 每日挑战/无限模式入口人数埋点：复用求助状态请求顺带 SADD，避免前端单独发埋点请求
         if ("dailyChallenge".equals(mode)) {
             userService.reportDailyChallengeEnter(userId);
+        } else if ("endlessChallenge".equals(mode)) {
+            userService.reportEndlessChallengeEnter(userId);
         }
         return Result.success(new DailyHelpResponse(
                 userService.getDailyHelpUsed(userId, mode), userService.getHelpMax(mode)));
@@ -223,6 +226,16 @@ public class GameController {
     @PostMapping("/signin/config")
     public Result<List<SignInRewardItem>> signInConfig() {
         return Result.success(resourceService.getSignInRewards());
+    }
+
+    /**
+     * 游戏区猫咪气泡文案配置：进关时拉一次整池存内存，之后本地按权重随机挑，不再请求。
+     * 文案后台写死（含数字），无 mock/统计逻辑。data 为 null 表示未配置，前端静默跳过气泡。
+     */
+    @ApiName("气泡提示配置接口")
+    @PostMapping("/bubble-tips")
+    public Result<BubbleTipConfig> bubbleTips() {
+        return Result.success(userService.getBubbleTips());
     }
 
     /**

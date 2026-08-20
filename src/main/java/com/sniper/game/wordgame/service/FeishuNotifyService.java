@@ -44,9 +44,10 @@ public class FeishuNotifyService {
      * @param dau         今日日活（独立登录用户数）
      * @param signInCount 今日签到人数（独立签到用户数）
      * @param dailyChallengeCount 今日每日挑战入口人数（独立挑战用户数）
+     * @param endlessChallengeCount 今日无限模式入口人数（独立进入用户数）
      */
     @Async
-    public void sendSummaryNotify(String envLabel, String now, long delta, long dailyTotal, String sceneDetail, long skipTotal, long dau, long signInCount, long dailyChallengeCount) {
+    public void sendSummaryNotify(String envLabel, String now, long delta, long dailyTotal, String sceneDetail, long skipTotal, long dau, long signInCount, long dailyChallengeCount, long endlessChallengeCount) {
         if (webhookUrl == null || webhookUrl.isEmpty()) {
             log.debug("飞书 Webhook URL 未配置，跳过通知");
             return;
@@ -54,8 +55,8 @@ public class FeishuNotifyService {
 
         try {
             String content = String.format(
-                "时间：%s\n近10分钟看完广告新增：%d 次\n今日观看广告累计：%d 次\n%s\n广告中途关闭/跳过：%d 次\n\n\n日活：%d 人\n签到人数：%d 人\n每日挑战人数：%d 人",
-                now, delta, dailyTotal, sceneDetail, skipTotal, dau, signInCount, dailyChallengeCount
+                "时间：%s\n近10分钟看完广告新增：%d 次\n今日观看广告累计：%d 次\n%s\n广告中途关闭/跳过：%d 次\n\n\n日活：%d 人\n签到人数：%d 人\n每日挑战人数：%d 人\n无限模式人数：%d 人",
+                now, delta, dailyTotal, sceneDetail, skipTotal, dau, signInCount, dailyChallengeCount, endlessChallengeCount
             );
 
             JSONObject body = new JSONObject();

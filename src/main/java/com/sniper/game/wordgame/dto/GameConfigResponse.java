@@ -34,6 +34,15 @@ public class GameConfigResponse {
     /** 无限模式层流规则（按关卡区间）：max=关卡上界，字段缺省回落前端默认值 */
     private List<EndlessLayerRuleRange> endlessLayerRules;
 
+    /**
+     * 无限模式挑战化批次计划（按关卡区间）：套用每日挑战 wave_plan 的 batches 结构，
+     * 额外带 weights（刷色权重）与 unburyRatio/refillRatio（层流阈值，命中区间后覆盖 endlessLayerRules 同名字段）。
+     */
+    private List<EndlessChallengeWavePlanRange> endlessChallengeWavePlan;
+
+    /** 无限模式挑战化铺板参数（按关卡区间）：套用每日挑战 wave_plates 的 batches 结构 */
+    private List<EndlessChallengeWavePlatesRange> endlessChallengeWavePlates;
+
     /** 求助好友每日上限（按模式）：help_max 配置键，缺省回落 4 */
     private HelpMax helpMax;
 
@@ -76,6 +85,8 @@ public class GameConfigResponse {
         private Integer shapeFirst;
         /** 长条形大板保底块数（plate_bar，宽扁横条横向5孔；缺省/0=不出现） */
         private Integer stripFirst;
+        /** 每层最多出现几种板子形状（缺省/0=不限制），前端已用，DTO 补齐 */
+        private Integer shapeVariety;
     }
 
     @Data
@@ -98,5 +109,27 @@ public class GameConfigResponse {
     public static class HelpMax {
         private Integer dailyChallenge;
         private Integer endlessChallenge;
+    }
+
+    @Data
+    public static class EndlessChallengeWavePlanRange {
+        private Integer max;
+        private List<WavePlanBatch> batches;
+        private Weights weights;
+        /**
+         * 以下 4 个字段命中该区间后逐个覆盖 endlessLayerRules 同名字段（按字段覆盖，某字段缺省
+         * 则该字段沿用 endlessLayerRules 的值）。maxPlates 不在本类里，单层铺板量由
+         * EndlessChallengeWavePlatesRange 每批自己的 maxPlates 决定，缺批时才回落 endlessLayerRules.maxPlates。
+         */
+        private Integer maxLayers;
+        private Integer initialLoad;
+        private Double unburyRatio;
+        private Double refillRatio;
+    }
+
+    @Data
+    public static class EndlessChallengeWavePlatesRange {
+        private Integer max;
+        private List<WavePlatesBatch> batches;
     }
 }
